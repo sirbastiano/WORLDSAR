@@ -1,9 +1,9 @@
 from pathlib import Path
 from sarpyx.snapflow.engine import GPT
 from sarpyx.utils.geos import check_points_in_polygon, rectangle_to_wkt, rectanglify
-import re
 from dotenv import load_dotenv
-import os
+import re, os
+from functools import partial
 import argparse
 
 # ================================================================================================================================ ENVIRON
@@ -54,6 +54,12 @@ def parse_arguments():
         required=True,
         help='WKT string defining the product region of interest.'
     )
+    parser.add_argument(
+        '--prod_mode',
+        type=str,
+        required=True,
+        help='Product mode: ["S1TOP", "S1STRIP","BIOMASS","NISAR", "TSX", "CSG", "ICE"].'
+    )
     return parser.parse_args()
 
 # Basic initialization setting
@@ -62,8 +68,11 @@ product_path = Path(args.product_path)
 output_dir = Path(args.output_dir)
 product_wkt = args.product_wkt
 cuts_outdir = Path(args.cuts_outdir)
+grid_geoj_path = Path(GRID_PATH) if GRID_PATH else None
+product_mode = args.prod_mode
+
+tiling = False
 prepro = True
-grid_geoj_path = GRID_PATH
 # ========================================================================================================================================
 
 
@@ -79,6 +88,18 @@ def extract_product_id(path: str) -> str | None:
     m = re.search(r"/([^/]+?)_[^/_]+\.dim$", path)
     return m.group(1) if m else None
 
+def to_geotiff(product_path: Path, output_dir: Path, geo_region: str = None, output_name: str = None):
+    assert geo_region is not None, "Geo region WKT string must be provided for subsetting."
+    
+    op = GPT(
+        product=product_path,
+        outdir=output_dir,
+        format='GDAL-GTiff-WRITER',
+        gpt_path=GPT_PATH,
+    )
+    op.Write()
+
+    return op.prod_path
 
 def subset(product_path: Path, output_dir: Path, geo_region: str = None, output_name: str = None):
     assert geo_region is not None, "Geo region WKT string must be provided for subsetting."
@@ -96,8 +117,10 @@ def subset(product_path: Path, output_dir: Path, geo_region: str = None, output_
         )
 
     return op.prod_path
-# ========================================================================================================================================
 
+
+
+# ========================================================================================================================================
 def pipeline_sentinel(product_path: Path, output_dir: Path, is_TOPS: bool = False):
     """A simple test pipeline to validate the GPT wrapper functionality.
 
@@ -131,13 +154,30 @@ def pipeline_sentinel(product_path: Path, output_dir: Path, is_TOPS: bool = Fals
 
 
 def pipeline_biomass(product_path: Path, output_dir: Path):
-    """A simple test pipeline to validate the GPT wrapper functionality.
+    """BIOMASS pipeline.
+
+    Args:
+        product_path (Path): Path to the input product.
+        output_dir (Path): Directory to save the processed output.
+
+    Returns:
+        Path: Path to the processed product.
+    """
+    op = GPT(
+        product=product_path,
+        outdir=output_dir,
+        format='GDAL-GTiff-WRITER',
+        gpt_path=GPT_PATH,
+    )
+    op.Write()
+    # TODO: Calculate SubApertures with BIOMASS Data.
+    return op.prod_path
+
+
+def pipeline_nisar(product_path: Path, output_dir: Path):
+    """ NISAR Pipeline.
 
     The operations included are:
-    - Debursting
-    - Calibration to complex
-    - Multilooking
-    - (Optional) Subsetting by geographic coordinates
 
     Args:
         product_path (Path): Path to the input product.
@@ -154,7 +194,16 @@ def pipeline_biomass(product_path: Path, output_dir: Path):
     )
     
     op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=10.0)
+    # TODO: Calculate SubApertures with BIOMASS Data.
     return op.prod_path
+
+
+ROUTER_PIPE = {
+    'S1TOP': partial(pipeline_sentinel, is_TOPS=True),
+    'S1STRIP': partial(pipeline_sentinel, is_TOPS=False),
+    'BIOMASS': pipeline_biomass,
+    'NISAR': pipeline_nisar,
+}
 
 
 
@@ -163,14 +212,14 @@ if __name__ == "__main__":
     
     # STEP1:
     if prepro:
-        intermediate_product = pipeline_sentinel(product_path, output_dir)
+        intermediate_product = ROUTER_PIPE[product_mode](product_path, output_dir)
         print(f"Intermediate processed product located at: {intermediate_product}")
 
     # STEP2:
-    else:
+    if tiling:
         # ------ Cutting according to the tile griding system: ------
         print(f'Checking points within polygon: {product_wkt}')
-        assert Path(grid_geoj_path).exists(), 'grid_10km.geojson does not exist.'
+        assert grid_geoj_path is not None and grid_geoj_path.exists(), 'grid_10km.geojson does not exist.'
         # step 1: check the contained grid points in the prod
         contained = check_points_in_polygon(product_wkt, geojson_path=grid_geoj_path)
         # step 2: Build the rectangles for cutting
