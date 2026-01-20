@@ -1,14 +1,45 @@
 #!/bin/bash
 
-PROD='/Data_large/SARGFM/data/1_data/BIOMASS/bio_s3_dgm__1s_20251106t221201_20251106t221221_c_g___m___c___t____f159_lut.nc'
-MODE='BIOMASS'
+PROD=$1
+WKT=$2
+# WKT='POLYGON ((32.633476 -26.831511, 32.865452 -25.984432, 30.373695 -25.393059, 30.122793 -26.234951, 32.633476 -26.831511))'
+MODE='BIOMASS' # BM or S1 or TSX
+
+# Load environment variables from .env file:
+if [ -f .env ]; then
+        export $(grep -v '^#' .env | xargs)
+fi
+
+# get filepath of current file 
+CURRENT_FILE_PATH="$(realpath "$0")"
+# go up one directory
+BASE_DIR="$(dirname "$(dirname "$CURRENT_FILE_PATH")")"
+# Scripts directory
+SCRIPTS_DIR="${BASE_DIR}/pyscripts"
+
+# Echoes 
+# Pretty print environment details
+echo "======================================================================================================================="
+echo " __        __   ___    ____   _       ____    ____      _      ____  "
+echo " \\ \\      / /  / _ \\  |  _ \\ | |     |  _ \\  / ___|    / \\    |  _ \\ "
+echo "  \\ \\ /\\ / /  | | | | | |_) || |     | | | | \\___ \\   / _ \\   | |_) |"
+echo "   \\ V  V /   | |_| | |  _ < | |___  | |_| |  ___) | / ___ \\  |  _ < "
+echo "    \\_/\\_/     \\___/  |_| \\_\\|_____| |____/  |____/ /_/   \\_\\ |_| \\_\\"
+echo "======================================================================================================================="
+echo ""
+echo "Using virtual environment at: ${venv_path}"
+echo "Using GPT at: ${gpt_path}"
+echo "Output directory: ${output_dir}"
+echo "Output cuts directory: ${output_cuts_dir}"
+echo "Scripts directory: ${SCRIPTS_DIR}"
+echo "======================================================================================================================="
 
 
 
-PYTHON="/Data_large/SARGFM/srp/.venv/bin/python3"
-$PYTHON /Data_large/SARGFM/pyscripts/main.py \
-        --product_path ${PROD} \
-        --prod_mode ${MODE} \
-        --output_dir /Data_large/SARGFM/data/2_processed \
-        --cuts_outdir /Data_large/SARGFM/data/3_cuts \
-        --product_wkt 'POLYGON ((32.633476 -26.831511, 32.865452 -25.984432, 30.373695 -25.393059, 30.122793 -26.234951, 32.633476 -26.831511))'
+# PYTHON="${venv_path}/bin/python3"
+# $PYTHON /Data_large/SARGFM/pyscripts/main.py \
+#         --product_path ${PROD} \
+#         --prod_mode ${MODE} \
+#         --output_dir ${output_dir} \
+#         --cuts_outdir ${output_cuts_dir} \
+#         --product_wkt ${WKT}
