@@ -3,7 +3,16 @@ from phidown.search import CopernicusDataSearcher
 from shapely.geometry import shape
 import xml.etree.ElementTree as ET
 
-def sentinel1_wkt_extractor(product_name: str, display_results: bool = True) -> str | None:
+
+
+
+# ==============================================================================================================
+# ==============================================================================================================
+# ==============================================================================================================
+
+
+
+def sentinel1_wkt_extractor_cdse(product_name: str, display_results: bool = True) -> str | None:
     """
     Extract WKT footprint from Sentinel-1 product using Copernicus Data Search.
 
@@ -36,7 +45,16 @@ def sentinel1_wkt_extractor(product_name: str, display_results: bool = True) -> 
     else:
         print(f"Product '{product_name}' not found or an error occurred.")
         return None
-    
+
+
+
+
+
+
+# ==============================================================================================================
+# ==============================================================================================================
+# ==============================================================================================================
+
     
 def terrasar_wkt_extractor(product_path: Path) -> str:
     """
@@ -48,6 +66,8 @@ def terrasar_wkt_extractor(product_path: Path) -> str:
     Returns:
         str: WKT representation of the product footprint polygon.
     """
+    if isinstance(product_path, str):
+        product_path = Path(product_path)
     assert product_path.exists(), f"Product path {product_path} does not exist."
     assert product_path.suffix.lower() == '.xml', f"Product path {product_path} is not an XML file."
     
