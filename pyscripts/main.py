@@ -121,13 +121,12 @@ def subset(product_path: Path, output_dir: Path, geo_region: str = None, output_
 
 
 # ========================================================================================================================================
-def pipeline_sentinel(product_path: Path, output_dir: Path, is_TOPS: bool = False):
+def pipeline_sentinel(product_path: Path, output_dir: Path, is_TOPS: bool = False, subaperture: bool = False):
     """A simple test pipeline to validate the GPT wrapper functionality.
 
     The operations included are:
     - Debursting
     - Calibration to complex
-    - Multilooking
     - (Optional) Subsetting by geographic coordinates
 
     Args:
@@ -144,12 +143,38 @@ def pipeline_sentinel(product_path: Path, output_dir: Path, is_TOPS: bool = Fals
         gpt_path=GPT_PATH,
     )
     op.ApplyOrbitFile()
-    if is_TOPS:
+    if is_TOPS and subaperture:
         op.TopsarDerampDemod()
     op.Deburst()
     op.Calibration(output_complex=True)
     # TODO: Add subaperture.
     op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=10.0)
+    return op.prod_path
+
+
+def pipeline_terrasar(product_path: Path, output_dir: Path, is_TOPS: bool = False):
+    """A simple test pipeline to validate the GPT wrapper functionality.
+
+    The operations included are:
+    - Calibration to complex
+    - (Optional) Subsetting by geographic coordinates
+
+    Args:
+        product_path (Path): Path to the input product.
+        output_dir (Path): Directory to save the processed output.
+
+    Returns:
+        Path: Path to the processed product.
+    """
+    op = GPT(
+        product=product_path,
+        outdir=output_dir,
+        format='BEAM-DIMAP',
+        gpt_path=GPT_PATH,
+    )
+    op.Calibration(output_complex=True)
+    # TODO: Add subaperture.
+    op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=5.0)
     return op.prod_path
 
 
