@@ -58,7 +58,7 @@ def parse_arguments():
         '--prod_mode',
         type=str,
         required=True,
-        help='Product mode: ["S1TOP", "S1STRIP","BIOMASS","NISAR", "TSX", "CSG", "ICE"].'
+        help='Product mode: ["S1TOP", "S1STRIP","BM","NISAR", "TSX", "CSG", "ICE"].'
     )
     return parser.parse_args()
 
@@ -226,13 +226,24 @@ def pipeline_nisar(product_path: Path, output_dir: Path):
 ROUTER_PIPE = {
     'S1TOP': partial(pipeline_sentinel, is_TOPS=True),
     'S1STRIP': partial(pipeline_sentinel, is_TOPS=False),
-    'BIOMASS': pipeline_biomass,
+    'BM': pipeline_biomass,
+    'TSX': pipeline_terrasar,
     'NISAR': pipeline_nisar,
 }
 
 
 
-# ================================ MAIN ==================================
+
+
+
+
+
+
+
+
+
+
+# =============================================== MAIN =================================================
 if __name__ == "__main__":
     
     # STEP1:
@@ -249,8 +260,9 @@ if __name__ == "__main__":
         contained = check_points_in_polygon(product_wkt, geojson_path=grid_geoj_path)
         # step 2: Build the rectangles for cutting
         rectangles = rectanglify(contained)
-        # TODO: remove this hardcoded path in the final pipe, use directly  intermediate_product as path
-        product_path = Path('/Data_large/SARGFM/data/2_processed/S1A_IW_SLC__1SDV_20240503T031928_20240503T031942_053701_0685FB_670F_TC.dim')
+        # # TODO: remove this hardcoded path in the final pipe, use directly  intermediate_product as path
+        # product_path = Path('/Data_large/SARGFM/data/2_processed/S1A_IW_SLC__1SDV_20240503T031928_20240503T031942_053701_0685FB_670F_TC.dim')
+        product_path = Path(intermediate_product)
         name = extract_product_id(product_path.as_posix())
         if name is None:
             raise ValueError(f"Could not extract product id from: {product_path}")

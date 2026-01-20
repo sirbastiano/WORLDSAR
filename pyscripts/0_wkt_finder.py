@@ -1,28 +1,66 @@
+from pathlib import Path
 from phidown.search import CopernicusDataSearcher
 from shapely.geometry import shape
+import xml.etree.ElementTree as ET
 
-searcher_by_name = CopernicusDataSearcher()
+def sentinel1_wkt_extractor(product_name: str, display_results: bool = True) -> str | None:
+    """
+    Extract WKT footprint from Sentinel-1 product using Copernicus Data Search.
 
-# Replace with an actual product name you want to find
-product_to_find = 'S1A_IW_SLC__1SDV_20240503T031928_20240503T031942_053701_0685FB_670F.SAFE' # Example, replace with a recent, valid name
+    Args:
+        product_name (str): Name of the Sentinel-1 product to search for.
+        display_results (bool): Whether to display search results. Defaults to True.
 
-print(f"Searching for product with exact name: {product_to_find}\n")
-df_exact = searcher_by_name.query_by_name(product_name=product_to_find)
+    Returns:
+        str | None: WKT representation of the product footprint polygon, or None if not found.
+    """
+    searcher = CopernicusDataSearcher()
+    
+    print(f"Searching for product with exact name: {product_name}\n")
+    df_exact = searcher.query_by_name(product_name=product_name)
 
-if not df_exact.empty:
-    searcher_by_name.display_results(top_n=1)
-    print(df_exact)
-    print("\nProduct found successfully.")
+    if not df_exact.empty:
+        if display_results:
+            searcher.display_results(top_n=1)
+            print(df_exact)
+            print("\nProduct found successfully.")
+        
+        geofootprint = df_exact['GeoFootprint'].values[0]
+        print(f"Product with GeoFootprint: '{geofootprint}' found.")
+        
+        polygon = shape(geofootprint)
+        wkt_polygon = polygon.wkt
+        
+        print(f"\nWKT Polygon:\n{wkt_polygon}")
+        return wkt_polygon
+    else:
+        print(f"Product '{product_name}' not found or an error occurred.")
+        return None
     
-    # Get the GeoFootprint and convert to WKT
-    geofootprint = df_exact['GeoFootprint'].values[0]
-    print(f"Product with GeoFootprint: '{geofootprint}' found.")
     
-    # Convert GeoJSON geometry to WKT
-    polygon = shape(geofootprint)
-    wkt_polygon = polygon.wkt
+def terrasar_wkt_extractor(product_path: Path) -> str:
+    """
+    Extract WKT footprint from Terrasar-X product XML file.
+
+    Args:
+        product_path (Path): Path to the input Terrasar-X product XML file.
+
+    Returns:
+        str: WKT representation of the product footprint polygon.
+    """
+    assert product_path.exists(), f"Product path {product_path} does not exist."
+    assert product_path.suffix.lower() == '.xml', f"Product path {product_path} is not an XML file."
     
-    print(f"\nWKT Polygon:\n{wkt_polygon}")
-    
-else:
-    print(f"Product '{product_to_find}' not found or an error occurred.")
+    tree = ET.parse(product_path)
+    root = tree.getroot()
+
+    # Find all sceneCornerCoord elements and extract coordinates
+    corners = [(float(corner.find('lon').text), float(corner.find('lat').text)) 
+               for corner in root.findall('.//sceneCornerCoord')]
+
+    # Close the polygon by repeating the first point at the end
+    if corners:
+        corners.append(corners[0])
+
+    # Create WKT polygon string
+    return f"POLYGON(({', '.join(f'{lon} {lat}' for lon, lat in corners)}))"
