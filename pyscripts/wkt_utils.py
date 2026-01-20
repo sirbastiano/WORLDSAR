@@ -1,3 +1,18 @@
+"""This script provides utility functions for extracting Well-Known Text (WKT) representations of geographic footprints 
+from satellite product metadata. It includes functions for extracting WKT polygons from Sentinel-1 products using 
+the Copernicus Data Search API and from Terrasar-X product XML files.
+Functions:
+-----------
+1. sentinel1_wkt_extractor_cdse(product_name: str, display_results: bool = True) -> str | None:
+    Extracts the WKT footprint of a Sentinel-1 product by querying the Copernicus Data Search API.
+        product_name (str): The exact name of the Sentinel-1 product to search for.
+        str | None: The WKT representation of the product footprint polygon, or None if the product is not found.
+2. terrasar_wkt_extractor(product_path: Path) -> str:
+    Extracts the WKT footprint of a Terrasar-X product from its XML metadata file.
+        product_path (Path): The file path to the Terrasar-X product XML file.
+        str: The WKT representation of the product footprint polygon.
+"""
+
 from pathlib import Path
 from phidown.search import CopernicusDataSearcher
 from shapely.geometry import shape
@@ -9,16 +24,14 @@ import xml.etree.ElementTree as ET
 # ==============================================================================================================
 # ==============================================================================================================
 # ==============================================================================================================
-
-
-
-def sentinel1_wkt_extractor_cdse(product_name: str, display_results: bool = True) -> str | None:
+# ==============================================================================================================
+def sentinel1_wkt_extractor_cdse(product_name: str, display_results: bool = False) -> str | None:
     """
     Extract WKT footprint from Sentinel-1 product using Copernicus Data Search.
 
     Args:
         product_name (str): Name of the Sentinel-1 product to search for.
-        display_results (bool): Whether to display search results. Defaults to True.
+        display_results (bool): Whether to display search results. Defaults to False.
 
     Returns:
         str | None: WKT representation of the product footprint polygon, or None if not found.

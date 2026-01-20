@@ -41,6 +41,16 @@ def read_h5(file_path: str) -> tuple[dict, dict]:
     return data, metadata
 
 
+
+
+
+
+
+
+# =====================================================================
+# Sentinel-1 core metadata extraction
+# =====================================================================
+
 def extract_core_metadata_sentinel(md: dict) -> dict:
     """
     Extract a minimal, cross-mission–relevant SAR metadata subset

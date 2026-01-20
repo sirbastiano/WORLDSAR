@@ -10,8 +10,8 @@ import argparse
 # Load environment variables from .env file
 load_dotenv()
 # Read paths from environment variables
-GPT_PATH = os.getenv('GPT_PATH')
-GRID_PATH = os.getenv('GRID_PATH')
+GPT_PATH = os.getenv('gpt_path')
+GRID_PATH = os.getenv('grid_path')
 # ========================================================================================================================================
 
 
@@ -71,19 +71,17 @@ cuts_outdir = Path(args.cuts_outdir)
 grid_geoj_path = Path(GRID_PATH) if GRID_PATH else None
 product_mode = args.prod_mode
 
+
+
+
+
+
+# ======================================================================================================================== SETTINGS
+# Processing settings
 tiling = False
 prepro = True
 # ========================================================================================================================================
-
-
-
-
-
-
-
-
-
-# ================================================================================================================================ AUXILIARY
+# ====================================================================================================================== AUXILIARY
 def extract_product_id(path: str) -> str | None:
     m = re.search(r"/([^/]+?)_[^/_]+\.dim$", path)
     return m.group(1) if m else None
@@ -100,6 +98,7 @@ def to_geotiff(product_path: Path, output_dir: Path, geo_region: str = None, out
     op.Write()
 
     return op.prod_path
+
 
 def subset(product_path: Path, output_dir: Path, geo_region: str = None, output_name: str = None):
     assert geo_region is not None, "Geo region WKT string must be provided for subsetting."
@@ -119,7 +118,7 @@ def subset(product_path: Path, output_dir: Path, geo_region: str = None, output_
     return op.prod_path
 
 
-
+# ====================================================================================================================== PIPELINES
 # ========================================================================================================================================
 def pipeline_sentinel(product_path: Path, output_dir: Path, is_TOPS: bool = False, subaperture: bool = False):
     """A simple test pipeline to validate the GPT wrapper functionality.
@@ -152,12 +151,38 @@ def pipeline_sentinel(product_path: Path, output_dir: Path, is_TOPS: bool = Fals
     return op.prod_path
 
 
-def pipeline_terrasar(product_path: Path, output_dir: Path, is_TOPS: bool = False):
-    """A simple test pipeline to validate the GPT wrapper functionality.
+def pipeline_terrasar(product_path: Path, output_dir: Path):
+    """Terrasar-X pipeline.
 
     The operations included are:
-    - Calibration to complex
-    - (Optional) Subsetting by geographic coordinates
+    - Calibration, outputting complex data if available.
+    - Terrain Correction with automatic map projection and 5m pixel spacing.
+
+    Args:
+        product_path (Path): Path to the input product.
+        output_dir (Path): Directory to save the processed output.
+
+    Returns:
+        Path: Path to the processed product.
+    """
+    op = GPT(
+        product=product_path,
+        outdir=output_dir,
+        format='BEAM-DIMAP',
+        gpt_path=GPT_PATH,
+    )
+    op.Calibration(output_complex=True)
+    # TODO: Add subaperture.
+    op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=5.0)
+    return op.prod_path
+
+
+def pipeline_cosmo(product_path: Path, output_dir: Path):
+    """COSMO-SkyMed pipeline.
+
+    The operations included are:
+    - Calibration, outputting complex data if available.
+    - Terrain Correction with automatic map projection and 5m pixel spacing.
 
     Args:
         product_path (Path): Path to the input product.
@@ -211,25 +236,24 @@ def pipeline_nisar(product_path: Path, output_dir: Path):
     Returns:
         Path: Path to the processed product.
     """
-    op = GPT(
-        product=product_path,
-        outdir=output_dir,
-        format='BEAM-DIMAP',
-        gpt_path=GPT_PATH,
-    )
     
-    op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=10.0)
-    # TODO: Calculate SubApertures with BIOMASS Data.
-    return op.prod_path
+    # TODO: fix implementation
+    product_path = None
+    return product_path
+# ========================================================================================================================================
 
 
+
+# ========================================================================================================================================
 ROUTER_PIPE = {
     'S1TOP': partial(pipeline_sentinel, is_TOPS=True),
     'S1STRIP': partial(pipeline_sentinel, is_TOPS=False),
     'BM': pipeline_biomass,
     'TSX': pipeline_terrasar,
     'NISAR': pipeline_nisar,
+    'CSG': pipeline_cosmo,
 }
+# ========================================================================================================================================
 
 
 
