@@ -319,17 +319,28 @@ def main():
         # step 2: Build the rectangles for cutting
         rectangles = rectanglify(contained)
         product_path = Path(intermediate_product)
-        name = extract_product_id(product_path.as_posix())
+        name = extract_product_id(product_path.as_posix()) if product_mode != 'NISAR' else product_path.stem
         if name is None:
             raise ValueError(f"Could not extract product id from: {product_path}")
         
         for rect in rectangles: # CUT!
             geo_region = rectangle_to_wkt(rect)
-            final_product = subset(product_path, 
-                                   cuts_outdir / name, 
-                                   output_name=rect['BL']['properties']['name'],
-                                   geo_region=geo_region)
-            print(f"Final processed product located at: {final_product}")
+            if product_mode != 'NISAR':
+                final_product = subset(product_path, 
+                                    cuts_outdir / name, 
+                                    output_name=rect['BL']['properties']['name'],
+                                    geo_region=geo_region)
+                print(f"Final processed product located at: {final_product}")
+            else:
+                reader = NISARReader(product_path.as_posix())
+                cutter = NISARCutter(reader)
+                subset = cutter.cut_by_wkt(geo_region, "HH", apply_mask=False)
+                cutter.save_subset(subset, cuts_outdir / name / f"{rect['BL']['properties']['name']}.tiff") 
+                # TODO: write write method to save to h5.
+                print(f"Final processed NISAR tile saved at: {cuts_outdir / name / f'{rect['BL']['properties']['name']}.tiff'}")
+                
+                
+                
         total_tiles = len(rectangles)
         num_cuts = list(Path(cuts_outdir / name).rglob('*.h5'))
         assert total_tiles == len(num_cuts), f"Expected {total_tiles} tiles, but found {len(num_cuts)}."

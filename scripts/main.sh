@@ -8,7 +8,7 @@ WKT=$2
 # e.g., if product name contains 'S1STRIP', set MODE='S1', etc. (S1C_S5_RAW__0SDH_20250419T054935_20250419T055001_001958_003E3F_5CF3.SAFE)
 # e.g., if product name contains 'TSX', set MODE='TSX', etc. (TSX1_SAR__MGD_SE___SM_S_SRA_20220523T052620_20220523T052628)
 # e.g., if product name contains 'BIOM', set MODE='BM', etc. 
-MODE='S1TOPS' # [S1TOPS, S1STRIP, BM, TSX, NISAR, CSG]
+MODE='NISAR' # [S1TOPS, S1STRIP, BM, TSX, NISAR, CSG]
 
 
 #----------------------------------------------------------
