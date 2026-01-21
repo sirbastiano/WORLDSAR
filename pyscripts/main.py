@@ -7,9 +7,8 @@ import argparse
 
 from sarpyx.snapflow.engine import GPT
 from sarpyx.utils.geos import check_points_in_polygon, rectangle_to_wkt, rectanglify
+from sarpyx.utils.io import read_h5
 
-from wkt_utils import sentinel1_wkt_extractor_cdse
-from core_metadata import extract_core_metadata_sentinel, read_h5
 
 # Load environment variables from .env file
 load_dotenv()
@@ -334,8 +333,8 @@ if __name__ == "__main__":
         name = extract_product_id(product_path.as_posix())
         if name is None:
             raise ValueError(f"Could not extract product id from: {product_path}")
-        # CUT!
-        for rect in rectangles:
+        
+        for rect in rectangles: # CUT!
             geo_region = rectangle_to_wkt(rect)
             final_product = subset(product_path, 
                                    cuts_outdir / name, 
@@ -351,11 +350,10 @@ if __name__ == "__main__":
     # Database indexing
     if db_indexing:
         cuts_folder = cuts_outdir / name
-        db = create_tile_database(cuts_folder.as_posix(), DB_DIR)
+        db = create_tile_database(cuts_folder.as_posix(), DB_DIR) # type: ignore
         assert not db.empty, "Database creation failed, resulting DataFrame is empty."
         print("Database created successfully.")
         
     sys.exit(0)
-    
 # ========================================================================================================================================  
         
