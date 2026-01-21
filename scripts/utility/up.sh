@@ -4,11 +4,16 @@ set -euo pipefail  # Exit on error, undefined vars, pipe failures
 # This script uploads the dataset to Hugging Face using the CLI.
 # Ensure you have the Hugging Face CLI installed and authenticated
 # Load environment variables from .env file:
-if [ -f .env ]; then
-        export $(grep -v '^#' .env | xargs)
+script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+env_file="$(cd "${script_dir}/../.." && pwd)/.env"
+
+if [ -f "${env_file}" ]; then
+    set -a
+    source "${env_file}"
+    set +a
 fi
 
-source ${venv_path}/bin/activate
+source ${VENV_PATH}/bin/activate
 
 # ========== Main Script Execution =========
 echo "🚀 Starting dataset upload to Hugging Face..."
