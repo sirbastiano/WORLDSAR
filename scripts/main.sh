@@ -13,8 +13,6 @@ MODE='S1TOPS' # [S1TOPS, S1STRIP, BM, TSX, NISAR, CSG]
 
 
 
-
-
 #----------------------------------------------------------
 # Load environment variables from .env file:
 if [ -f .env ]; then
@@ -60,12 +58,13 @@ OUTPUT=$($PYTHON ${SCRIPTS_DIR}/main.py \
 
 
 
-
-
 if [ $? -eq 0 ]; then
     echo "Execution successful."
     echo "Output:"
     echo "$OUTPUT"
+    # Upload to HF
+    source "${SCRIPTS_DIR}/utility/up.sh" "WORLDSAR/S1Toy" "${output_cuts_dir}"
+
 else
     echo "Execution failed."
     echo "Output:"
