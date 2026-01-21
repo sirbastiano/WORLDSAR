@@ -8,6 +8,7 @@ import argparse
 from sarpyx.snapflow.engine import GPT
 from sarpyx.utils.geos import check_points_in_polygon, rectangle_to_wkt, rectanglify
 from sarpyx.utils.io import read_h5
+from sarpyx.utils.nisar_utils import NISARReader, NISARCutter, NISARMetadata
 
 
 # Load environment variables from .env file
@@ -273,14 +274,13 @@ def pipeline_nisar(product_path: Path, output_dir: Path):
 
     Args:
         product_path (Path): Path to the input product.
-        output_dir (Path): Directory to save the processed output.
+        output_dir (Path): Directory to save the processed output. [Not used]
 
     Returns:
         Path: Path to the processed product.
     """
-    
-    # TODO: fix implementation
-    product_path = None
+    assert product_path.suffix == '.h5', "NISAR products must be in .h5 format."
+    # Monkey patching for NISAR products
     return product_path
 # ========================================================================================================================================
 
@@ -301,18 +301,8 @@ ROUTER_PIPE = {
 
 
 
-
-
-
-
-
-
-
-
-
-# =============================================== MAIN =================================================
-if __name__ == "__main__":
-    
+# =============================================== MAIN =========================================================================
+def main():
     # STEP1:
     if prepro:
         intermediate_product = ROUTER_PIPE[product_mode](product_path, output_dir)
@@ -355,4 +345,12 @@ if __name__ == "__main__":
         
     sys.exit(0)
 # ========================================================================================================================================  
+
+
+
+
+
+if __name__ == "__main__":
+    # main()
+    pass
         

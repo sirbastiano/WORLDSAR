@@ -11,20 +11,13 @@ WKT=$2
 MODE='S1TOPS' # [S1TOPS, S1STRIP, BM, TSX, NISAR, CSG]
 
 
-
-
 #----------------------------------------------------------
 # Load environment variables from .env file:
-if [ -f .env ]; then
-        export $(grep -v '^#' .env | xargs)
+BASE_DIR="$(cd "$(dirname "$(dirname "$0")")" && pwd)"
+if [ -f "${BASE_DIR}/.env" ]; then
+        source "${BASE_DIR}/.env"
 fi
 
-# get filepath of current file 
-CURRENT_FILE_PATH="$(realpath "$0")"
-# go up one directory
-BASE_DIR="$(dirname "$(dirname "$CURRENT_FILE_PATH")")"
-# Scripts directory
-SCRIPTS_DIR="${BASE_DIR}/pyscripts"
 #----------------------------------------------------------
 clear
 echo "======================================================================================================================="
@@ -37,35 +30,44 @@ echo "==========================================================================
 echo "======================================         DATA PROCESSOR       ==================================================="
 echo "======================================================================================================================="
 echo ""
-echo "Using virtual environment at: ${venv_path}"
-echo "Using GPT at: ${gpt_path}"
-echo "Output directory: ${output_dir}"
-echo "Output cuts directory: ${output_cuts_dir}"
+echo "Using virtual environment at: ${VENV_PATH}"
+echo "Using GPT at: ${GPT_PATH}"
+echo "Output directory: ${OUTPUT_DIR}"
+echo "Output cuts directory: ${OUTPUT_CUTS_DIR}"
 echo "Scripts directory: ${SCRIPTS_DIR}"
-echo "DB directory: ${db_dir}"
+echo "DB directory: ${DB_DIR}"
+echo "Bash dir: ${SCRIPTS_DIR}"
+echo "Python scripts dir: ${PYSCRIPTS_DIR}"
+echo "Product mode: ${MODE}"
+echo "Upload repo: ${UPLOAD_REPO}"
+echo "DB Upload repo: ${DB_UPLOAD_REPO}"
+echo ""
 echo "======================================================================================================================="
 
 
-
-PYTHON="${venv_path}/bin/python"
-OUTPUT=$($PYTHON ${SCRIPTS_DIR}/main.py \
+PYTHON="${VENV_PATH}/bin/python"
+OUTPUT=$($PYTHON ${PYSCRIPTS_DIR}/main.py \
         --product_path "${PROD}" \
         --prod_mode "${MODE}" \
-        --output_dir "${output_dir}" \
-        --cuts_outdir "${output_cuts_dir}" \
+        --output_dir "${OUTPUT_DIR}" \
+        --cuts_outdir "${OUTPUT_CUTS_DIR}" \
         --product_wkt "${WKT}")
-
-
-
-
+echo "======================================          END PROCESSOR       ==================================================="
+echo "======================================================================================================================="
 
 if [ $? -eq 0 ]; then
     echo "Execution successful."
     echo "Output:"
     echo "$OUTPUT"
     # Upload to HF
-    source "${SCRIPTS_DIR}/utility/up.sh" "WORLDSAR/S1Toy" "${output_cuts_dir}"
-    source "${SCRIPTS_DIR}/utility/up.sh" "WORLDSAR/Database" "${db_dir}"
+    echo "======================================================================================================================="
+    echo "======================================        UPLOADING              =================================================="
+    echo "======================================================================================================================="
+    source "${SCRIPTS_DIR}/utility/up.sh" "${UPLOAD_REPO}" "${OUTPUT_CUTS_DIR}"
+    source "${SCRIPTS_DIR}/utility/up.sh" "${DB_UPLOAD_REPO}" "${DB_DIR}"
+    echo "======================================================================================================================="
+    echo "======================================        FINALISING              ==================================================="
+    echo "======================================================================================================================="
 
 else
     echo "Execution failed."
