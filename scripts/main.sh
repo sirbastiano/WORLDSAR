@@ -42,6 +42,7 @@ echo "Using GPT at: ${gpt_path}"
 echo "Output directory: ${output_dir}"
 echo "Output cuts directory: ${output_cuts_dir}"
 echo "Scripts directory: ${SCRIPTS_DIR}"
+echo "DB directory: ${db_dir}"
 echo "======================================================================================================================="
 
 
@@ -64,6 +65,7 @@ if [ $? -eq 0 ]; then
     echo "$OUTPUT"
     # Upload to HF
     source "${SCRIPTS_DIR}/utility/up.sh" "WORLDSAR/S1Toy" "${output_cuts_dir}"
+    source "${SCRIPTS_DIR}/utility/up.sh" "WORLDSAR/Database" "${db_dir}"
 
 else
     echo "Execution failed."
