@@ -1,16 +1,6 @@
 """This script provides utility functions for extracting Well-Known Text (WKT) representations of geographic footprints 
 from satellite product metadata. It includes functions for extracting WKT polygons from Sentinel-1 products using 
 the Copernicus Data Search API and from Terrasar-X product XML files.
-Functions:
------------
-1. sentinel1_wkt_extractor_cdse(product_name: str, display_results: bool = True) -> str | None:
-    Extracts the WKT footprint of a Sentinel-1 product by querying the Copernicus Data Search API.
-        product_name (str): The exact name of the Sentinel-1 product to search for.
-        str | None: The WKT representation of the product footprint polygon, or None if the product is not found.
-2. terrasar_wkt_extractor(product_path: Path) -> str:
-    Extracts the WKT footprint of a Terrasar-X product from its XML metadata file.
-        product_path (Path): The file path to the Terrasar-X product XML file.
-        str: The WKT representation of the product footprint polygon.
 """
 
 from pathlib import Path
@@ -21,10 +11,7 @@ import xml.etree.ElementTree as ET
 
 
 
-# ==============================================================================================================
-# ==============================================================================================================
-# ==============================================================================================================
-# ==============================================================================================================
+
 def sentinel1_wkt_extractor_cdse(product_name: str, display_results: bool = False) -> str | None:
     """
     Extract WKT footprint from Sentinel-1 product using Copernicus Data Search.
@@ -60,15 +47,6 @@ def sentinel1_wkt_extractor_cdse(product_name: str, display_results: bool = Fals
         return None
 
 
-
-
-
-
-# ==============================================================================================================
-# ==============================================================================================================
-# ==============================================================================================================
-
-    
 def terrasar_wkt_extractor(product_path: Path) -> str:
     """
     Extract WKT footprint from Terrasar-X product XML file.
@@ -97,3 +75,19 @@ def terrasar_wkt_extractor(product_path: Path) -> str:
 
     # Create WKT polygon string
     return f"POLYGON(({', '.join(f'{lon} {lat}' for lon, lat in corners)}))"
+
+
+
+
+if __name__ == "__main__":
+    MODE = 'S1TOPS'  # Example mode, can be 'S1TOPS', 'S1STRIP', 'BM', 'TSX', etc.
+    if MODE == 'S1TOPS' or MODE == 'S1STRIP':
+        # Example usage for Sentinel-1 product
+        sentinel1_product_name = "S1A_IW_GRDH_1SDV_20141031T161924_20141031T161949_003076_003856_634E.SAFE"
+        wkt_sentinel1 = sentinel1_wkt_extractor_cdse(sentinel1_product_name, display_results=False)
+    
+    elif MODE == 'TSX':
+        # Example usage for Terrasar-X product
+        terrasar_product_path = Path("/path/to/terrasar_product.xml")
+        wkt_terrasar = terrasar_wkt_extractor(terrasar_product_path)
+        print(f"\nTerrasar-X WKT Polygon:\n{wkt_terrasar}")

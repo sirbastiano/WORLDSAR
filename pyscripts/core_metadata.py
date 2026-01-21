@@ -38,6 +38,8 @@ def read_h5(file_path: str) -> tuple[dict, dict]:
         
         h5_file.visititems(extract_data)
     
+    quickinfo = extract_core_metadata_sentinel(metadata.get('metadata/Abstracted_Metadata', {}))
+    metadata['quickinfo'] = quickinfo
     return data, metadata
 
 
@@ -53,7 +55,7 @@ def read_h5(file_path: str) -> tuple[dict, dict]:
 
 def extract_core_metadata_sentinel(md: dict) -> dict:
     """
-    Extract a minimal, cross-mission–relevant SAR metadata subset
+    Extract a minimal, cross-mission-relevant SAR metadata subset
     for geospatial foundation models.
 
     Args:
