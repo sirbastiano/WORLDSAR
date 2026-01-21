@@ -78,7 +78,6 @@ product_mode = args.prod_mode
 tiling = True
 prepro = True
 db_indexing = True
-upload_hf = False
 
 # ======================================================================================================================== AUXILIARY
 """ Auxiliary functions for database creation and product subsetting. """
