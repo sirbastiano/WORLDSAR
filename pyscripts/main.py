@@ -1,3 +1,17 @@
+"""
+This script processes satellite SAR data from various missions using the SNAP GPT tool and the sarpyx library. It supports different pipelines for Sentinel-1, Terrasar-X, COSMO-SkyMed, BIOMASS, and NISAR products. The processing steps include debursting, calibration, terrain
+
+
+TODO: metadate reorganization.
+TODO: SUBAPERTURE PROCESSING for all missions.
+TODO: PolSAR support.
+TODO: InSAR support.
+
+
+
+"""
+
+
 from pathlib import Path
 from dotenv import load_dotenv
 import re, os, sys
