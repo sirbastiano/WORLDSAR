@@ -1,7 +1,19 @@
 #!/bin/sh
+# DISCLAIMER: This script is provided as-is without any guarantees or warranty.
+# The user assumes all responsibility and risk for the use of this script.
+# The authors are not liable for any damage or data loss arising from its use.
+# This script works for linux.
+
 
 # Set SNAP version to install (12 or 13)[IMPORTANT]
 VERSION=13
+
+# Links: 
+# SNAP 12: https://download.esa.int/step/snap/12.0/installers/esa-snap_all_linux-12.0.0.sh
+# SNAP 13: https://download.esa.int/step/snap/13.0/installers/esa-snap_sentinel_linux-13.0.0.sh
+# SNAP 13MacOS-Intel: https://download.esa.int/step/snap/13.0/installers/esa-snap_sentinel_macos_intel-13.0.0.dmg
+# SNAP 13MacOS-ARM: https://download.esa.int/step/snap/13.0/installers/esa-snap_sentinel_macos_arm-13.0.0.dmg
+# SNAP 13Windows: https://download.esa.int/step/snap/13.0/installers/esa-snap_sentinel_windows-13.0.0.exe
 
 # get filepath of current file 
 CURRENT_FILE_PATH="$(realpath "$0")"
