@@ -1,106 +1,60 @@
 #!/usr/bin/env python3
 """
-Visualize TSX-S1 stack coverage and temporal frequency.
+Pipeline step 2: visualize TSX-S1 stacks.
 
-This script creates interactive HTML maps showing:
-1. Stack coverage heatmap: Number of products per geographic area
-2. Temporal frequency map: Average time spacing between products in each stack
-
-Usage:
-    python3 visualize_stacks.py
+Creates interactive HTML maps and a statistics summary page.
 """
 
-import pandas as pd
-import numpy as np
-from pathlib import Path
-from datetime import datetime
 from ast import literal_eval
+from datetime import datetime
+from pathlib import Path
+
 import folium
+import numpy as np
+import pandas as pd
 from folium import plugins
-from shapely.geometry import box
 from tqdm import tqdm
 
 
 def load_parquet_metadata(parquet_path):
-    """
-    Load TSX-S1 match metadata from parquet file.
-
-    Args:
-        parquet_path (Path): Path to parquet file.
-
-    Returns:
-        pd.DataFrame: Loaded metadata with parsed bboxes.
-    """
-    print(f'Loading metadata from {parquet_path}...')
+    print(f"Loading metadata from {parquet_path}...")
     df = pd.read_parquet(parquet_path)
-    
-    # Parse bbox strings to lists
-    df['tsx_bbox_parsed'] = df['tsx_bbox'].apply(literal_eval)
-    
-    print(f'Loaded {len(df)} matches for {df["tsx_id"].nunique()} unique TSX products')
+    df["tsx_bbox_parsed"] = df["tsx_bbox"].apply(literal_eval)
+    print(f"Loaded {len(df)} matches for {df['tsx_id'].nunique()} unique TSX products")
     return df
 
 
 def load_stack_files(stack_dir):
-    """
-    Load all stack CSV files and extract temporal information.
-
-    Args:
-        stack_dir (Path): Directory containing stack CSV files.
-
-    Returns:
-        dict: Dictionary mapping stack_id -> DataFrame with temporal info.
-    """
-    print(f'\nLoading stack files from {stack_dir}...')
-    stack_files = sorted(stack_dir.glob('stack_*.csv'))
+    print(f"\nLoading stack files from {stack_dir}...")
+    stack_files = sorted(stack_dir.glob("stack_*.csv"))
     stacks = {}
-    
-    for stack_file in tqdm(stack_files, desc='Loading stacks'):
-        stack_id = int(stack_file.stem.split('_')[1])
+
+    for stack_file in tqdm(stack_files, desc="Loading stacks"):
+        stack_id = int(stack_file.stem.split("_")[1])
         df = pd.read_csv(stack_file)
-        
-        # Parse datetimes
-        df['tsx_start_datetime'] = pd.to_datetime(df['tsx_start_datetime'])
-        
-        # Sort by time
-        df = df.sort_values('tsx_start_datetime')
-        
+        df["tsx_start_datetime"] = pd.to_datetime(df["tsx_start_datetime"])
+        df = df.sort_values("tsx_start_datetime")
         stacks[stack_id] = df
-    
-    print(f'Loaded {len(stacks)} stacks')
+
+    print(f"Loaded {len(stacks)} stacks")
     return stacks
 
 
 def compute_stack_statistics(stacks, metadata_df):
-    """
-    Compute statistics for each stack (count, temporal frequency, bbox).
-
-    Args:
-        stacks (dict): Dictionary of stack DataFrames.
-        metadata_df (pd.DataFrame): Metadata with bbox information.
-
-    Returns:
-        pd.DataFrame: Statistics for each stack.
-    """
-    print('\nComputing stack statistics...')
+    print("\nComputing stack statistics...")
     stats = []
-    
-    for stack_id, stack_df in tqdm(stacks.items(), desc='Computing stats'):
-        # Get first TSX ID to extract bbox
-        first_tsx_id = stack_df['tsx_id'].iloc[0]
-        
-        # Find bbox from metadata
-        bbox_row = metadata_df[metadata_df['tsx_id'] == first_tsx_id]
+
+    for stack_id, stack_df in tqdm(stacks.items(), desc="Computing stats"):
+        first_tsx_id = stack_df["tsx_id"].iloc[0]
+        bbox_row = metadata_df[metadata_df["tsx_id"] == first_tsx_id]
         if len(bbox_row) == 0:
             continue
-        
-        bbox = bbox_row['tsx_bbox_parsed'].iloc[0]
-        
-        # Compute temporal statistics
+
+        bbox = bbox_row["tsx_bbox_parsed"].iloc[0]
         num_products = len(stack_df)
-        
+
         if num_products > 1:
-            time_diffs = stack_df['tsx_start_datetime'].diff().dropna()
+            time_diffs = stack_df["tsx_start_datetime"].diff().dropna()
             avg_time_diff_days = time_diffs.mean().total_seconds() / 86400
             min_time_diff_days = time_diffs.min().total_seconds() / 86400
             max_time_diff_days = time_diffs.max().total_seconds() / 86400
@@ -108,61 +62,51 @@ def compute_stack_statistics(stacks, metadata_df):
             avg_time_diff_days = np.nan
             min_time_diff_days = np.nan
             max_time_diff_days = np.nan
-        
-        # Compute center point
+
         center_lon = (bbox[0] + bbox[2]) / 2
         center_lat = (bbox[1] + bbox[3]) / 2
-        
-        stats.append({
-            'stack_id': stack_id,
-            'num_products': num_products,
-            'avg_time_diff_days': avg_time_diff_days,
-            'min_time_diff_days': min_time_diff_days,
-            'max_time_diff_days': max_time_diff_days,
-            'center_lon': center_lon,
-            'center_lat': center_lat,
-            'bbox': bbox,
-            'bbox_minlon': bbox[0],
-            'bbox_minlat': bbox[1],
-            'bbox_maxlon': bbox[2],
-            'bbox_maxlat': bbox[3]
-        })
-    
+
+        stats.append(
+            {
+                "stack_id": stack_id,
+                "num_products": num_products,
+                "avg_time_diff_days": avg_time_diff_days,
+                "min_time_diff_days": min_time_diff_days,
+                "max_time_diff_days": max_time_diff_days,
+                "center_lon": center_lon,
+                "center_lat": center_lat,
+                "bbox": bbox,
+                "bbox_minlon": bbox[0],
+                "bbox_minlat": bbox[1],
+                "bbox_maxlon": bbox[2],
+                "bbox_maxlat": bbox[3],
+            }
+        )
+
     stats_df = pd.DataFrame(stats)
-    print(f'\nStatistics computed for {len(stats_df)} stacks')
-    print(f'Total products across all stacks: {stats_df["num_products"].sum()}')
-    print(f'Average products per stack: {stats_df["num_products"].mean():.1f}')
-    print(f'Median temporal spacing: {stats_df["avg_time_diff_days"].median():.1f} days')
-    
+    print(f"\nStatistics computed for {len(stats_df)} stacks")
+    print(f"Total products across all stacks: {stats_df['num_products'].sum()}")
+    if len(stats_df) > 0:
+        print(f"Average products per stack: {stats_df['num_products'].mean():.1f}")
+        print(
+            f"Median temporal spacing: {stats_df['avg_time_diff_days'].median():.1f} days"
+        )
+
     return stats_df
 
 
 def create_heatmap(stats_df, output_path):
-    """
-    Create heatmap showing number of products per stack location.
+    print("\nCreating product count heatmap...")
+    center_lat = stats_df["center_lat"].mean()
+    center_lon = stats_df["center_lon"].mean()
 
-    Args:
-        stats_df (pd.DataFrame): Stack statistics.
-        output_path (Path): Output HTML file path.
-    """
-    print(f'\nCreating product count heatmap...')
-    
-    # Create base map centered on mean location
-    center_lat = stats_df['center_lat'].mean()
-    center_lon = stats_df['center_lon'].mean()
-    
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=2,
-        tiles='OpenStreetMap'
-    )
-    
-    # Add heatmap layer
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=2, tiles="OpenStreetMap")
+
     heat_data = [
-        [row['center_lat'], row['center_lon'], row['num_products']]
+        [row["center_lat"], row["center_lon"], row["num_products"]]
         for _, row in stats_df.iterrows()
     ]
-    
+
     plugins.HeatMap(
         heat_data,
         min_opacity=0.3,
@@ -170,17 +114,16 @@ def create_heatmap(stats_df, output_path):
         radius=15,
         blur=20,
         gradient={
-            0.0: 'blue',
-            0.3: 'cyan',
-            0.5: 'lime',
-            0.7: 'yellow',
-            1.0: 'red'
-        }
+            0.0: "blue",
+            0.3: "cyan",
+            0.5: "lime",
+            0.7: "yellow",
+            1.0: "red",
+        },
     ).add_to(m)
-    
-    # Add marker cluster with detailed info
-    marker_cluster = plugins.MarkerCluster(name='Stack Details')
-    
+
+    marker_cluster = plugins.MarkerCluster(name="Stack Details")
+
     for _, row in stats_df.iterrows():
         popup_html = f"""
         <b>Stack ID:</b> {row['stack_id']}<br>
@@ -190,20 +133,19 @@ def create_heatmap(stats_df, output_path):
         <b>Max Spacing:</b> {row['max_time_diff_days']:.1f} days<br>
         <b>Location:</b> ({row['center_lat']:.3f}, {row['center_lon']:.3f})
         """
-        
+
         folium.Marker(
-            location=[row['center_lat'], row['center_lon']],
+            location=[row["center_lat"], row["center_lon"]],
             popup=folium.Popup(popup_html, max_width=300),
-            icon=folium.Icon(color='red' if row['num_products'] > 10 else 'blue', icon='info-sign')
+            icon=folium.Icon(
+                color="red" if row["num_products"] > 10 else "blue", icon="info-sign"
+            ),
         ).add_to(marker_cluster)
-    
+
     marker_cluster.add_to(m)
-    
-    # Add layer control
     folium.LayerControl().add_to(m)
-    
-    # Add navigation bar
-    nav_html = '''
+
+    nav_html = """
     <div style="position: fixed; 
                 top: 10px; left: 50%; transform: translateX(-50%); 
                 background-color: rgba(255, 255, 255, 0.95); 
@@ -216,11 +158,10 @@ def create_heatmap(stats_df, output_path):
         <span style="color: #4CAF50; font-weight: bold; margin: 0 10px;">📊 Coverage Heatmap</span> |
         <a href="tsx_s1_temporal_frequency.html" style="text-decoration: none; color: #2196F3; margin: 0 10px;">⏱️ Quality Map</a>
     </div>
-    '''
+    """
     m.get_root().html.add_child(folium.Element(nav_html))
-    
-    # Add title
-    title_html = '''
+
+    title_html = """
     <div style="position: fixed; 
                 top: 70px; left: 50px; width: 500px; height: 90px; 
                 background-color: white; border:2px solid grey; z-index:9999; 
@@ -229,102 +170,72 @@ def create_heatmap(stats_df, output_path):
         <p>Heat intensity shows number of products per stack location.<br>
         Click markers for detailed stack information.</p>
     </div>
-    '''
+    """
     m.get_root().html.add_child(folium.Element(title_html))
-    
-    # Save map
+
     m.save(str(output_path))
-    print(f'Heatmap saved to {output_path}')
+    print(f"Heatmap saved to {output_path}")
 
 
 def create_temporal_frequency_map(stats_df, output_path):
-    """
-    Create map showing temporal frequency (avg time between products) for each stack.
+    print("\nCreating temporal frequency map...")
 
-    Args:
-        stats_df (pd.DataFrame): Stack statistics.
-        output_path (Path): Output HTML file path.
-    """
-    print(f'\nCreating temporal frequency map...')
-    
-    # Filter stacks with at least 2 products
-    stats_temporal = stats_df[stats_df['num_products'] > 1].copy()
-    
-    print(f'Creating map for {len(stats_temporal)} stacks with 2+ products')
-    
-    # Create base map
-    center_lat = stats_temporal['center_lat'].mean()
-    center_lon = stats_temporal['center_lon'].mean()
-    
-    m = folium.Map(
-        location=[center_lat, center_lon],
-        zoom_start=2,
-        tiles='OpenStreetMap'
-    )
-    
-    # Define 2D color mapping based on temporal frequency AND product count
+    stats_temporal = stats_df[stats_df["num_products"] > 1].copy()
+    print(f"Creating map for {len(stats_temporal)} stacks with 2+ products")
+
+    center_lat = stats_temporal["center_lat"].mean()
+    center_lon = stats_temporal["center_lon"].mean()
+
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=2, tiles="OpenStreetMap")
+
     def get_color_2d(avg_days, num_products):
-        """
-        Get color based on both temporal spacing and product count.
-        Green = high frequency (low days) + many products = ideal
-        Red = low frequency (high days) + few products = poor
-        """
         if pd.isna(avg_days):
-            return 'gray'
-        
-        # Classify temporal frequency (lower is better)
+            return "gray"
+
         if avg_days <= 15:
-            freq_score = 3  # Excellent
+            freq_score = 3
         elif avg_days <= 30:
-            freq_score = 2  # Good
+            freq_score = 2
         elif avg_days <= 50:
-            freq_score = 1  # Fair
+            freq_score = 1
         else:
-            freq_score = 0  # Poor
-        
-        # Classify product count (higher is better)
+            freq_score = 0
+
         if num_products >= 30:
-            count_score = 3  # Excellent
+            count_score = 3
         elif num_products >= 20:
-            count_score = 2  # Good
+            count_score = 2
         elif num_products >= 10:
-            count_score = 1  # Fair
+            count_score = 1
         else:
-            count_score = 0  # Poor
-        
-        # Combined score (0-6)
+            count_score = 0
+
         combined_score = freq_score + count_score
-        
-        # Map to colors: green=best, red=worst
         color_map = {
-            6: '#006400',  # Dark green (best: many products, high frequency)
-            5: '#228B22',  # Forest green
-            4: '#32CD32',  # Lime green
-            3: '#FFD700',  # Gold (medium)
-            2: '#FFA500',  # Orange
-            1: '#FF4500',  # Orange red
-            0: '#8B0000'   # Dark red (worst: few products, low frequency)
+            6: "#006400",
+            5: "#228B22",
+            4: "#32CD32",
+            3: "#FFD700",
+            2: "#FFA500",
+            1: "#FF4500",
+            0: "#8B0000",
         }
-        
-        return color_map.get(combined_score, 'gray')
-    
-    # Add circles for each stack
+        return color_map.get(combined_score, "gray")
+
     for _, row in stats_temporal.iterrows():
-        color = get_color_2d(row['avg_time_diff_days'], row['num_products'])
-        
-        # Determine quality label
-        avg_days = row['avg_time_diff_days']
-        num_prods = row['num_products']
-        
+        color = get_color_2d(row["avg_time_diff_days"], row["num_products"])
+        avg_days = row["avg_time_diff_days"]
+        num_prods = row["num_products"]
+
         if avg_days <= 15 and num_prods >= 30:
-            quality = 'Excellent'
+            quality = "Excellent"
         elif avg_days <= 30 and num_prods >= 20:
-            quality = 'Good'
+            quality = "Good"
         elif avg_days <= 50 or num_prods >= 10:
-            quality = 'Fair'
+            quality = "Fair"
         else:
-            quality = 'Poor'
-        
+            quality = "Poor"
+
         popup_html = f"""
         <b>Stack ID:</b> {row['stack_id']}<br>
         <b>Quality:</b> <span style="color:{color}; font-weight:bold">{quality}</span><br>
@@ -334,20 +245,19 @@ def create_temporal_frequency_map(stats_df, output_path):
         <b>Max Spacing:</b> {row['max_time_diff_days']:.1f} days<br>
         <b>Location:</b> ({row['center_lat']:.3f}, {row['center_lon']:.3f})
         """
-        
+
         folium.CircleMarker(
-            location=[row['center_lat'], row['center_lon']],
-            radius=6,  # Fixed size
+            location=[row["center_lat"], row["center_lon"]],
+            radius=6,
             popup=folium.Popup(popup_html, max_width=300),
             color=color,
             fill=True,
             fillColor=color,
             fillOpacity=0.8,
-            weight=2
+            weight=2,
         ).add_to(m)
-    
-    # Add legend
-    legend_html = '''
+
+    legend_html = """
     <div style="position: fixed; 
                 bottom: 50px; right: 50px; width: 240px; height: 320px; 
                 background-color: white; border:2px solid grey; z-index:9999; 
@@ -368,11 +278,10 @@ def create_temporal_frequency_map(stats_df, output_path):
         <b>Green</b> = frequent revisits + many products
         </p>
     </div>
-    '''
+    """
     m.get_root().html.add_child(folium.Element(legend_html))
-    
-    # Add navigation bar
-    nav_html = '''
+
+    nav_html = """
     <div style="position: fixed; 
                 top: 10px; left: 50%; transform: translateX(-50%); 
                 background-color: rgba(255, 255, 255, 0.95); 
@@ -385,11 +294,10 @@ def create_temporal_frequency_map(stats_df, output_path):
         <a href="tsx_s1_stack_heatmap.html" style="text-decoration: none; color: #2196F3; margin: 0 10px;">📊 Coverage Heatmap</a> |
         <span style="color: #4CAF50; font-weight: bold; margin: 0 10px;">⏱️ Quality Map</span>
     </div>
-    '''
+    """
     m.get_root().html.add_child(folium.Element(nav_html))
-    
-    # Add title
-    title_html = '''
+
+    title_html = """
     <div style="position: fixed; 
                 top: 70px; left: 50px; width: 520px; height: 90px; 
                 background-color: white; border:2px solid grey; z-index:9999; 
@@ -398,35 +306,29 @@ def create_temporal_frequency_map(stats_df, output_path):
         <p>Color shows combined quality based on temporal frequency and product count.<br>
         Green = high frequency (short revisit) + many products = best quality stacks.</p>
     </div>
-    '''
+    """
     m.get_root().html.add_child(folium.Element(title_html))
-    
-    # Save map
+
     m.save(str(output_path))
-    print(f'Temporal frequency map saved to {output_path}')
+    print(f"Temporal frequency map saved to {output_path}")
 
 
 def create_statistics_summary(stats_df, output_path):
-    """
-    Create a summary HTML page with statistics and histograms.
+    print("\nCreating statistics summary...")
 
-    Args:
-        stats_df (pd.DataFrame): Stack statistics.
-        output_path (Path): Output HTML file path.
-    """
-    print(f'\nCreating statistics summary...')
-    
-    # Compute overall statistics
     total_stacks = len(stats_df)
-    total_products = stats_df['num_products'].sum()
-    avg_products = stats_df['num_products'].mean()
-    median_products = stats_df['num_products'].median()
-    
-    stats_temporal = stats_df[stats_df['num_products'] > 1]
-    avg_temporal_spacing = stats_temporal['avg_time_diff_days'].mean()
-    median_temporal_spacing = stats_temporal['avg_time_diff_days'].median()
-    
-    # Create HTML
+    total_products = stats_df["num_products"].sum() if total_stacks > 0 else 0
+    avg_products = stats_df["num_products"].mean() if total_stacks > 0 else 0
+    median_products = stats_df["num_products"].median() if total_stacks > 0 else 0
+
+    stats_temporal = stats_df[stats_df["num_products"] > 1]
+    avg_temporal_spacing = (
+        stats_temporal["avg_time_diff_days"].mean() if len(stats_temporal) > 0 else 0
+    )
+    median_temporal_spacing = (
+        stats_temporal["avg_time_diff_days"].median() if len(stats_temporal) > 0 else 0
+    )
+
     html_content = f"""
     <!DOCTYPE html>
     <html>
@@ -466,12 +368,6 @@ def create_statistics_summary(stats_df, output_path):
                 margin-bottom: 30px;
                 border-radius: 10px;
                 box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            }}
-            .mission-section h2 {{
-                color: #333;
-                border-bottom: 3px solid #667eea;
-                padding-bottom: 10px;
-                margin-top: 0;
             }}
             .mission-section.active {{
                 border: 2px solid #4CAF50;
@@ -555,23 +451,6 @@ def create_statistics_summary(stats_df, output_path):
                 line-height: 1.6;
                 margin-bottom: 20px;
             }}
-            table {{
-                width: 100%;
-                border-collapse: collapse;
-                margin-top: 20px;
-            }}
-            th, td {{
-                padding: 12px;
-                text-align: left;
-                border-bottom: 1px solid #ddd;
-            }}
-            th {{
-                background-color: #667eea;
-                color: white;
-            }}
-            tr:hover {{
-                background-color: #f5f5f5;
-            }}
             .footer {{
                 text-align: center;
                 color: #777;
@@ -585,20 +464,19 @@ def create_statistics_summary(stats_df, output_path):
             <h1>🛰️ WP2: SAR Mission Matching Analysis</h1>
             <p>Interactive visualizations and statistics for multi-mission SAR stack analysis</p>
         </div>
-        
+
         <div class="container">
-            
-            <!-- TSX-S1 Section -->
+
             <div class="mission-section active">
                 <h2>
                     TSX / TDX ↔ Sentinel-1
                     <span class="status-badge status-active">✓ ACTIVE</span>
                 </h2>
                 <p class="section-description">
-                    TerraSAR-X and TanDEM-X matched with Sentinel-1 products. Analysis of {total_stacks} stacks 
+                    TerraSAR-X and TanDEM-X matched with Sentinel-1 products. Analysis of {total_stacks} stacks
                     containing {total_products} products with temporal and spatial overlap characteristics.
                 </p>
-                
+
                 <div class="stats-grid">
                     <div class="stat-box">
                         <div class="stat-label">Total Stacks</div>
@@ -617,7 +495,7 @@ def create_statistics_summary(stats_df, output_path):
                         <div class="stat-value">{median_temporal_spacing:.1f} days</div>
                     </div>
                 </div>
-                
+
                 <div class="links-container">
                     <a href="tsx_s1_stack_heatmap.html" target="_blank" class="link-button">📊 Coverage Heatmap</a>
                     <a href="tsx_s1_temporal_frequency.html" target="_blank" class="link-button">⏱️ Stack Quality Map</a>
@@ -625,63 +503,60 @@ def create_statistics_summary(stats_df, output_path):
                     <a href="tsx_centroids_clustered.html" target="_blank" class="link-button secondary">📍 Clustered View</a>
                 </div>
             </div>
-            
-            <!-- S1-NISAR Section -->
+
             <div class="mission-section inactive">
                 <h2>
                     Sentinel-1 ↔ NISAR
                     <span class="status-badge status-coming-soon">⏳ COMING SOON</span>
                 </h2>
                 <p class="section-description">
-                    Sentinel-1 matched with NISAR L-band SAR products. Analysis will include temporal overlap, 
+                    Sentinel-1 matched with NISAR L-band SAR products. Analysis will include temporal overlap,
                     spatial coverage, and multi-frequency (C-band + L-band) analysis capabilities.
                 </p>
-                
+
                 <div class="links-container">
                     <span class="link-button disabled">📊 Coverage Analysis</span>
                     <span class="link-button disabled">⏱️ Temporal Matching</span>
                     <span class="link-button disabled">🌍 Geographic Distribution</span>
                 </div>
             </div>
-            
-            <!-- S1-BIOMASS Section -->
+
             <div class="mission-section inactive">
                 <h2>
                     Sentinel-1 ↔ BIOMASS
                     <span class="status-badge status-coming-soon">⏳ COMING SOON</span>
                 </h2>
                 <p class="section-description">
-                    Sentinel-1 matched with BIOMASS P-band SAR products. Focus on forest biomass estimation 
+                    Sentinel-1 matched with BIOMASS P-band SAR products. Focus on forest biomass estimation
                     through multi-frequency synergy (C-band + P-band) for enhanced vegetation analysis.
                 </p>
-                
+
                 <div class="links-container">
                     <span class="link-button disabled">📊 Coverage Analysis</span>
                     <span class="link-button disabled">⏱️ Temporal Matching</span>
                     <span class="link-button disabled">🌲 Biomass Focus Areas</span>
                 </div>
             </div>
-            
-            <!-- BIOMASS-NISAR Section -->
+
             <div class="mission-section inactive">
                 <h2>
                     BIOMASS ↔ NISAR
                     <span class="status-badge status-coming-soon">⏳ COMING SOON</span>
                 </h2>
                 <p class="section-description">
-                    BIOMASS P-band matched with NISAR L-band products. Low-frequency SAR synergy for 
+                    BIOMASS P-band matched with NISAR L-band products. Low-frequency SAR synergy for
                     deep forest penetration and advanced biomass estimation studies.
                 </p>
-                
+
                 <div class="links-container">
                     <span class="link-button disabled">📊 Coverage Analysis</span>
                     <span class="link-button disabled">⏱️ Temporal Matching</span>
                     <span class="link-button disabled">🌍 Multi-frequency Analysis</span>
                 </div>
             </div>
-            
+
         </div>
-        
+
         <div class="footer">
             <p>WP2-Matching Analysis | Generated on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
             <p>WORLDSAR Project | ESA</p>
@@ -689,54 +564,59 @@ def create_statistics_summary(stats_df, output_path):
     </body>
     </html>
     """
-    
-    # Save HTML
-    with open(output_path, 'w') as f:
-        f.write(html_content)
-    
-    print(f'Statistics summary saved to {output_path}')
+
+    output_path.write_text(html_content)
+    print(f"Statistics summary saved to {output_path}")
 
 
 def main():
-    """Main execution function."""
-    # Define paths
-    base_dir = Path('/Users/roberto.delprete/Library/CloudStorage/OneDrive-ESA/Desktop/Repos/WORLDSAR/studies/WP2-Matching/TSX_S1')
-    parquet_path = base_dir / 'deliverable' / 'tsx_s1_IW_matches.parquet'
-    stack_dir = base_dir / 'output'
-    visuals_dir = base_dir / 'visuals'
-    
-    # Create output directory
-    visuals_dir.mkdir(exist_ok=True)
-    print(f'Output directory: {visuals_dir}')
-    
-    # Load data
-    metadata_df = load_parquet_metadata(parquet_path)
-    stacks = load_stack_files(stack_dir)
-    
-    # Compute statistics
+    base_dir = Path(__file__).resolve().parent
+    default_matches = base_dir / "deliverable" / "tsx_s1_IW_matches.parquet"
+    default_stack_dir = base_dir / "output"
+    default_visuals_dir = base_dir / "visuals"
+
+    import argparse
+
+    parser = argparse.ArgumentParser(
+        description="Pipeline step 2: visualize TSX-S1 temporal stacks"
+    )
+    parser.add_argument(
+        "--matches-path",
+        type=str,
+        default=str(default_matches),
+        help="Path to TSX-S1 matches parquet",
+    )
+    parser.add_argument(
+        "--stack-dir",
+        type=str,
+        default=str(default_stack_dir),
+        help="Directory containing stack CSV files",
+    )
+    parser.add_argument(
+        "--visuals-dir",
+        type=str,
+        default=str(default_visuals_dir),
+        help="Directory to write HTML outputs",
+    )
+
+    args = parser.parse_args()
+
+    metadata_df = load_parquet_metadata(Path(args.matches_path))
+    stacks = load_stack_files(Path(args.stack_dir))
     stats_df = compute_stack_statistics(stacks, metadata_df)
-    
-    # Create visualizations
-    create_heatmap(
-        stats_df,
-        visuals_dir / 'tsx_s1_stack_heatmap.html'
-    )
-    
-    create_temporal_frequency_map(
-        stats_df,
-        visuals_dir / 'tsx_s1_temporal_frequency.html'
-    )
-    
-    create_statistics_summary(
-        stats_df,
-        visuals_dir / 'index.html'
-    )
-    
-    print('\n' + '='*60)
-    print('All visualizations created successfully!')
-    print(f'Open {visuals_dir / "index.html"} to view the summary')
-    print('='*60)
+
+    visuals_dir = Path(args.visuals_dir)
+    visuals_dir.mkdir(parents=True, exist_ok=True)
+
+    create_heatmap(stats_df, visuals_dir / "tsx_s1_stack_heatmap.html")
+    create_temporal_frequency_map(stats_df, visuals_dir / "tsx_s1_temporal_frequency.html")
+    create_statistics_summary(stats_df, visuals_dir / "index.html")
+
+    print("\n" + "=" * 60)
+    print("All visualizations created successfully!")
+    print(f"Open {visuals_dir / 'index.html'} to view the summary")
+    print("=" * 60)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

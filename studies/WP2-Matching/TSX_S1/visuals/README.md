@@ -77,6 +77,6 @@ This directory contains interactive HTML maps and statistics for TSX-S1 matched 
 
 ## Generation
 
-Visualizations generated using [visualize_stacks.py](../visualize_stacks.py)
+Visualizations generated using [2_visualize.py](../2_visualize.py)
 
 Generated on: January 29, 2026
