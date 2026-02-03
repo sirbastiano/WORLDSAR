@@ -1,69 +1,48 @@
 #!/usr/bin/env python3
 """
-Pipeline step 0: search for matching Sentinel-1 products for TSX archive entries.
+Pipeline step 1: search for matching Sentinel-1 products for NISAR GSLC entries.
 
-Reads a TSX archive CSV, searches for matching Sentinel-1 SLC products within
-specified temporal and spatial thresholds, and saves results as a parquet file.
+Reads a NISAR CSV (from 0_retrieve_NISAR_products.py), searches for matching
+Sentinel-1 SLC products within specified temporal/spatial thresholds, and
+saves results as a parquet file.
 """
 
 import argparse
 import asyncio
-import json
-from ast import literal_eval
-from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 from phidown.search import CopernicusDataSearcher
 from shapely import wkt
-from shapely.geometry import MultiPolygon, box, shape
+from shapely.geometry import shape
 from tqdm import tqdm
 
 
-def wrap_lon(lon):
-    return ((lon + 180) % 360) - 180
-
-
-def bbox_to_geom_safe(bbox_value):
-    """
-    Dateline-safe bbox → geometry.
-
-    bbox_value may be:
-    - list/tuple [W, S, E, N] in lon/lat
-    - string representation of list (from CSV)
-    """
-    if bbox_value is None or pd.isna(bbox_value):
+def parse_wkt_safe(wkt_value):
+    if wkt_value is None or pd.isna(wkt_value):
         return None
+    if hasattr(wkt_value, "geom_type"):
+        return wkt_value
+    if not isinstance(wkt_value, str):
+        raise ValueError(f"Invalid WKT value: {wkt_value}")
+    geom = wkt.loads(wkt_value)
+    if geom.is_empty:
+        raise ValueError("Empty geometry from WKT")
+    return geom
 
-    if isinstance(bbox_value, str):
-        try:
-            bbox = json.loads(bbox_value)
-        except json.JSONDecodeError:
-            bbox = literal_eval(bbox_value)
-    else:
-        bbox = bbox_value
 
-    if not isinstance(bbox, (list, tuple)) or len(bbox) != 4:
-        raise ValueError(f"Invalid bbox: {bbox_value}")
+def parse_time_safe(value, label):
+    dt = pd.to_datetime(value, errors="coerce", utc=True)
+    if pd.isna(dt):
+        raise ValueError(f"Invalid {label}: {value}")
+    return dt
 
-    w, s, e, n = bbox
-    if not (-90 <= s <= 90 and -90 <= n <= 90):
-        raise ValueError(f"Invalid lat range in bbox: {bbox}")
-    if s > n:
-        raise ValueError(f"Invalid bbox ordering: {bbox}")
 
-    if (-180 <= w <= 180) and (-180 <= e <= 180) and (w <= e):
-        return box(w, s, e, n)
-
-    w_wrapped = wrap_lon(w)
-    e_wrapped = wrap_lon(e)
-
-    if w_wrapped > e_wrapped:
-        g1 = box(w_wrapped, s, 180, n)
-        g2 = box(-180, s, e_wrapped, n)
-        return MultiPolygon([g1, g2])
-
-    return box(w_wrapped, s, e_wrapped, n)
+def expand_date_range(start_dt, end_dt, threshold_days):
+    padding = pd.Timedelta(days=threshold_days / 2)
+    expanded_start = (start_dt - padding).strftime("%Y-%m-%dT%H:%M:%S")
+    expanded_end = (end_dt + padding).strftime("%Y-%m-%dT%H:%M:%S")
+    return expanded_start, expanded_end
 
 
 async def search_async(*, aoi_wkt, start_date, end_date, spatial_threshold, s1_mode, s1_product_type):
@@ -82,7 +61,8 @@ async def search_async(*, aoi_wkt, start_date, end_date, spatial_threshold, s1_m
         top=1000,
         count=True,
         attributes={
-            "processingLevel": "LEVEL1",
+            # Use operationalMode for Sentinel-1 mode filtering; processingLevel filters
+            # in CDSE were eliminating valid SLC results.
             "operationalMode": s1_mode,
         },
     )
@@ -102,9 +82,11 @@ async def search_async(*, aoi_wkt, start_date, end_date, spatial_threshold, s1_m
             footprint = shape(footprint_geojson)
             if poly_ref.is_empty:
                 return 0.0
-            intersection_area = footprint.intersection(poly_ref).area
-            poly_area = poly_ref.area
-            return intersection_area / poly_area if poly_area > 0 else 0.0
+            intersection = footprint.intersection(poly_ref)
+            if intersection.is_empty:
+                return 0.0
+            min_area = min(footprint.area, poly_ref.area)
+            return intersection.area / min_area if min_area > 0 else 0.0
 
         out = out.copy()
         out["coverage"] = out.apply(lambda row: calculate_coverage(row, poly), axis=1)
@@ -117,35 +99,24 @@ async def search_async(*, aoi_wkt, start_date, end_date, spatial_threshold, s1_m
 
 
 def extract_quickinfo(row):
-    """Extract temporal window and AOI WKT from a TSX row."""
-    fmt = lambda s: s.split(".")[0]
-    start = fmt(row["start_datetime"])
-    end = fmt(row["end_datetime"])
-    geom = bbox_to_geom_safe(row["bbox"])
-    if geom is None or geom.is_empty:
-        raise ValueError(f"Invalid bbox geometry for TSX ID {row.get('id')}")
+    start = parse_time_safe(row.get("startTime_utc"), "startTime_utc")
+    end = parse_time_safe(row.get("stopTime_utc"), "stopTime_utc")
+    geom = parse_wkt_safe(row.get("WKT"))
+    if geom is None:
+        raise ValueError(f"Missing WKT geometry for NISAR scene {row.get('sceneName')}")
     return {
-        "start_date": start,
-        "end_date": end,
+        "start_dt": start,
+        "end_dt": end,
         "aoi_wkt": geom.wkt,
     }
 
 
-def expand_date_range(info, threshold_days):
-    """Expand the date range by half of threshold_days on each side."""
-    start_dt = datetime.strptime(info["start_date"], "%Y-%m-%dT%H:%M:%S")
-    end_dt = datetime.strptime(info["end_date"], "%Y-%m-%dT%H:%M:%S")
-    padding = pd.Timedelta(days=threshold_days // 2)
-    expanded_start = (start_dt - padding).strftime("%Y-%m-%dT%H:%M:%S")
-    expanded_end = (end_dt + padding).strftime("%Y-%m-%dT%H:%M:%S")
-    return expanded_start, expanded_end
-
-
-async def process_tsx_row(row, spatial_threshold, threshold_days, s1_mode, s1_product_type):
-    """Process a single TSX row and search for matching S1 products."""
+async def process_nisar_row(row, spatial_threshold, threshold_days, s1_mode, s1_product_type):
     matches = []
     info = extract_quickinfo(row)
-    expanded_start, expanded_end = expand_date_range(info, threshold_days)
+    expanded_start, expanded_end = expand_date_range(
+        info["start_dt"], info["end_dt"], threshold_days
+    )
 
     try:
         out = await search_async(
@@ -158,13 +129,25 @@ async def process_tsx_row(row, spatial_threshold, threshold_days, s1_mode, s1_pr
         )
 
         if len(out) > 0:
+            start_str = info["start_dt"].strftime("%Y-%m-%dT%H:%M:%S")
+            end_str = info["end_dt"].strftime("%Y-%m-%dT%H:%M:%S")
             for _, s1_row in out.iterrows():
                 matches.append(
                     {
-                        "tsx_id": row["id"],
-                        "tsx_start_datetime": row["start_datetime"],
-                        "tsx_end_datetime": row["end_datetime"],
-                        "tsx_bbox": row["bbox"],
+                        "nisar_scene_name": row.get("sceneName"),
+                        "nisar_file_id": row.get("fileID"),
+                        "nisar_platform": row.get("platform"),
+                        "nisar_processing_level": row.get("processingLevel"),
+                        "nisar_beam_mode": row.get("beamMode"),
+                        "nisar_polarization": row.get("polarization"),
+                        "nisar_flight_direction": row.get("flightDirection"),
+                        "nisar_start_time": start_str,
+                        "nisar_stop_time": end_str,
+                        "nisar_duration_s": row.get("duration_s"),
+                        "nisar_wkt": row.get("WKT"),
+                        "nisar_centroid_lon": row.get("centroid_lon"),
+                        "nisar_centroid_lat": row.get("centroid_lat"),
+                        "nisar_url": row.get("url"),
                         "s1_name": s1_row.get("Name"),
                         "s1_id": s1_row.get("Id"),
                         "s1_start_date": s1_row.get("ContentDate", {}).get("Start"),
@@ -177,15 +160,14 @@ async def process_tsx_row(row, spatial_threshold, threshold_days, s1_mode, s1_pr
                     }
                 )
     except Exception as exc:
-        return {"error": str(exc), "tsx_id": row.get("id")}
+        return {"error": str(exc), "nisar_scene_name": row.get("sceneName")}
 
     return matches
 
 
 async def process_chunk(chunk_df, spatial_threshold, threshold_days, s1_mode, s1_product_type, chunk_idx, pbar):
-    """Process a chunk of TSX rows concurrently."""
     tasks = [
-        process_tsx_row(row, spatial_threshold, threshold_days, s1_mode, s1_product_type)
+        process_nisar_row(row, spatial_threshold, threshold_days, s1_mode, s1_product_type)
         for _, row in chunk_df.iterrows()
     ]
 
@@ -201,7 +183,9 @@ async def process_chunk(chunk_df, spatial_threshold, threshold_days, s1_mode, s1
             tqdm.write(f"Exception in chunk {chunk_idx}: {result}")
         elif isinstance(result, dict) and "error" in result:
             errors += 1
-            tqdm.write(f"Error for TSX ID {result.get('tsx_id')}: {result.get('error')}")
+            tqdm.write(
+                f"Error for NISAR scene {result.get('nisar_scene_name')}: {result.get('error')}"
+            )
         elif isinstance(result, list):
             all_matches.extend(result)
 
@@ -218,12 +202,18 @@ def save_chunk_results(matches, output_path, chunk_idx):
     return part_file
 
 
+def find_latest_csv(base_dir, pattern="nisar_gslc_*.csv"):
+    candidates = sorted(base_dir.glob(pattern), key=lambda p: p.stat().st_mtime, reverse=True)
+    return candidates[0] if candidates else None
+
+
 async def async_main(args):
     output_path = Path(args.output_path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    db = pd.read_csv(args.db_path)
-    print(f"Loaded {len(db)} TSX products from {args.db_path}")
+    db_path = Path(args.db_path)
+    db = pd.read_csv(db_path)
+    print(f"Loaded {len(db)} NISAR products from {db_path}")
 
     print("\nSearch parameters:")
     print(f"  Spatial threshold: {args.spatial_threshold}")
@@ -236,7 +226,7 @@ async def async_main(args):
     chunk_size = args.chunk_size
     num_chunks = (len(db) + chunk_size - 1) // chunk_size
 
-    with tqdm(total=len(db), desc="Processing TSX products") as pbar:
+    with tqdm(total=len(db), desc="Processing NISAR products") as pbar:
         for chunk_idx in range(num_chunks):
             start_idx = chunk_idx * chunk_size
             end_idx = min((chunk_idx + 1) * chunk_size, len(db))
@@ -266,7 +256,7 @@ async def async_main(args):
             )
 
     print("\nProcessing complete!")
-    print(f"Total TSX products processed: {len(db)}")
+    print(f"Total NISAR products processed: {len(db)}")
     print(f"Total matches found: {total_matches}")
     print(f"Total errors: {total_errors}")
 
@@ -288,17 +278,18 @@ async def async_main(args):
 
 def main():
     base_dir = Path(__file__).resolve().parent
-    default_db = base_dir / "footprints_TSX" / "TSX_TSM_SSC_archive_index.csv"
-    default_output = base_dir / "deliverable" / "tsx_s1_IW_matches.parquet"
+    latest_csv = find_latest_csv(base_dir)
+    default_db = str(latest_csv) if latest_csv else ""
+    default_output = base_dir / "deliverable" / "nisar_s1_IW_matches.parquet"
 
     parser = argparse.ArgumentParser(
-        description="Pipeline step 0: search for matching Sentinel-1 products for TSX archive"
+        description="Pipeline step 1: search for matching Sentinel-1 products for NISAR GSLC archive"
     )
     parser.add_argument(
         "--db-path",
         type=str,
-        default=str(default_db),
-        help="Path to TSX archive CSV file",
+        default=default_db,
+        help="Path to NISAR GSLC CSV file (defaults to latest nisar_gslc_*.csv)",
     )
     parser.add_argument(
         "--output-path",
@@ -309,20 +300,20 @@ def main():
     parser.add_argument(
         "--spatial-threshold",
         type=float,
-        default=0.85,
-        help="Minimum spatial overlap ratio (0-1)",
+        default=0.6,
+        help="Minimum spatial overlap ratio (intersection / min footprint area)",
     )
     parser.add_argument(
         "--threshold-days",
         type=int,
-        default=7,
+        default=30,
         help="Temporal threshold in days",
     )
     parser.add_argument(
         "--chunk-size",
         type=int,
-        default=500,
-        help="Number of TSX rows to process per chunk",
+        default=300,
+        help="Number of NISAR rows to process per chunk",
     )
     parser.add_argument(
         "--s1-mode",
@@ -340,8 +331,15 @@ def main():
     args = parser.parse_args()
     args.s1_mode = args.s1_mode.upper()
 
+    if not args.db_path:
+        raise FileNotFoundError(
+            f"No NISAR CSV found in {base_dir}. Run 0_retrieve_NISAR_products.py first."
+        )
+
     if args.output_path == str(default_output) and args.s1_mode != "IW":
-        args.output_path = str(base_dir / "deliverable" / f"tsx_s1_{args.s1_mode}_matches.parquet")
+        args.output_path = str(
+            base_dir / "deliverable" / f"nisar_s1_{args.s1_mode}_matches.parquet"
+        )
 
     asyncio.run(async_main(args))
 

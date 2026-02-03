@@ -66,7 +66,7 @@ coverage.xml
 
 
 # Sentinel-1 data files
-S1*
+data/S1*
 *.pkl
 *.s3cfg
 *.s5cfg
@@ -83,3 +83,7 @@ scripts/snap_installer/esa-snap_sentinel_linux-13.0.0.sh
 
 output/
 grids/
+
+
+/studies/TSX_S1*
+AGENTS.md
