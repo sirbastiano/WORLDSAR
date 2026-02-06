@@ -6,7 +6,7 @@
 
 
 # Set SNAP version to install (12 or 13)[IMPORTANT]
-VERSION=13
+VERSION=12
 
 # Links: 
 # SNAP 12: https://download.esa.int/step/snap/12.0/installers/esa-snap_all_linux-12.0.0.sh
