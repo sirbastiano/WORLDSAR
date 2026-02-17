@@ -955,14 +955,14 @@ def pipeline_sentinel(
 
 
     if is_TOPS:
-        # A) Debursting. For TOPS, this is required before deramping/demod, for Stripmap it can be done after calibration as a final step before terrain correction.
+        # A) Deramping
+        deramp_path = op.TopsarDerampDemod()
+        if deramp_path is None:
+            raise RuntimeError('TOPSAR Deramp/Demod failed.')
+        # B) Debursting. For TOPS, this is required before deramping/demod, for Stripmap it can be done after calibration as a final step before terrain correction.
         deburst_path = op.Deburst()
         if deburst_path is None:
             raise RuntimeError('TOPSAR Deburst failed.')
-        # B) Deramping
-        # deramp_path = op.TopsarDerampDemod()
-        # if deramp_path is None:
-        #     raise RuntimeError('TOPSAR Deramp/Demod failed.')
 
 
     # Applycation of the subaperture operator. For TOPS it requires deramp/demod as input, for Stripmap it takes the deburst output.

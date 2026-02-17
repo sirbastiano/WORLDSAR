@@ -1,12 +1,41 @@
-For running the WORLDSAR processing on the cluster, use the following command:
+## Pre-requisites
 
+```bash
+#!/bin/bash
 
-cd /lustre/projects/1001/rdelprete/logs && qsub /lustre/projects/1001/rdelprete/service/apptainer_worlsar.sh 
+# Activate conda environment
+source /lustre/projects/1001/miniconda3/bin/activate
+conda activate esa-phisatnet
 
+# Download WORLDSAR apptainer image
+hf download WORLDSAR/support sarpyx.sif \
+  --repo-type dataset \
+  --local-dir /lustre/projects/1001/rdelprete/WORLDSAR
+```
 
-# Next steps:
+---
 
-1) Upload .snap with orbit files to HF support
-2) Download .snap in WORLDSAR project folder
-3) Bind mount .snap in apptainer_worlsar.sh at /workspace/.snap
-4) Bnd mount the COPDEM and DEM files in apptainer_worlsar.sh at /workspace/.snap/auxdata/dem/'Copernicus 30m Global DEM'
+## Run WORLDSAR processing on the cluster
+
+```bash
+cd /lustre/projects/1001/rdelprete/logs
+qsub /lustre/projects/1001/rdelprete/service/apptainer_worlsar.sh
+```
+
+---
+
+## Next steps
+
+1. Upload the `.snap` folder (including orbit files) to HuggingFace `WORLDSAR/support`.
+2. Download the `.snap` folder into:
+   ```
+   /lustre/projects/1001/rdelprete/WORLDSAR
+   ```
+3. Bind-mount `.snap` inside `apptainer_worlsar.sh` to:
+   ```
+   /workspace/.snap
+   ```
+4. Bind-mount COPDEM/DEM files inside `apptainer_worlsar.sh` to:
+   ```
+   /workspace/.snap/auxdata/dem/Copernicus 30m Global DEM
+   ```
