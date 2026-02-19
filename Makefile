@@ -1,7 +1,8 @@
 
 
 
-.PHONY: help clean run status logs pull-sif list-data down
+.PHONY: help clean run status logs pull-sif list-data down downloader uploader
+
 
 # Default target
 help:
@@ -51,3 +52,17 @@ pull-sif:
 list-data:
 	@echo "Available SAR data:"
 	@ls -lh phidown_data/
+
+
+downloader:
+	@if [ -z "$(PRODUCT)" ]; then \
+		echo "Error: PRODUCT not specified. Usage: make downloader PRODUCT=<product_name>"; \
+		exit 1; \
+	fi
+	@echo "Downloading product from Hugging Face: $(PRODUCT)"
+	bash scripts/downloader.sh "$(PRODUCT)"
+
+
+uploader:
+	@echo "Uploading products to Hugging Face..."
+	bash scripts/uploader.sh

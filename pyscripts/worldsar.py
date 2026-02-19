@@ -51,7 +51,7 @@ os.environ.setdefault('SNAP_USERDIR', SNAP_USERDIR)
 
 prepro      = True
 tiling      = True
-db_indexing = False
+db_indexing = True
 
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -60,6 +60,7 @@ db_indexing = False
 
 def _sentinel_post_chain(op):
     """Calibration → DerampDemod → Deburst → PolDecomp → TC  (shared by each swath)."""
+    op.ApplyOrbitFile()
     op.Calibration(output_complex=True)
     op.TopsarDerampDemod()
     op.Deburst()
