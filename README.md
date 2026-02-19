@@ -18,8 +18,7 @@ hf download WORLDSAR/support sarpyx.sif \
 ## Run WORLDSAR processing on the cluster
 
 ```bash
-cd /lustre/projects/1001/rdelprete/logs
-qsub /lustre/projects/1001/rdelprete/service/apptainer_worlsar.sh
+cd /lustre/projects/1001/rdelprete/logs && qsub /lustre/projects/1001/rdelprete/WORLDSAR/main.sh && watch -n 1 qstat -u u10010007
 ```
 
 ---
