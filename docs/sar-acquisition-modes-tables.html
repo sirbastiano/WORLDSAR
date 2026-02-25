@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - SAR Acquisition Mode Tables</title>
+  <meta name="description" content="Tables extracted from docs/src/sar_acquisition_modes_tables.xlsx.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>SAR Acquisition Mode Tables</h1>
+        <p class="lead">
+          This page renders the tables from <code>docs/src/sar_acquisition_modes_tables.xlsx</code>.
+          It is intended as a quick reference for acquisition mode characteristics and comparisons.
+        </p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+      <a href="./sar-acquisition-modes-tables.html">SAR Acquisition Tables</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>Source and Scope</h2>
+        <p>Source workbook: <code>docs/src/sar_acquisition_modes_tables.xlsx</code>.</p>
+        <p>Each section below corresponds to one worksheet in the workbook.</p>
+      </section>
+      <section class="panel" id="readme">
+        <h2>README</h2>
+        <div class="table-wrap"><table><thead><tr><th>SAR acquisition modes: resolution and polarization overview (public specs)</th></tr></thead><tbody><tr><td>Interpretation</td></tr><tr><td>• Sentinel-1: spatial resolution values are single-look and typically given as range × azimuth (for SLC/GRD characteristics).</td></tr><tr><td>• NISAR: spatial resolution values are stated as ~7 m along-track (azimuth) and a slant-range range that depends on bandwidth/mode; table is from NASA Earthdata NISAR platform page.</td></tr><tr><td>• BIOMASS: SLC (single-look complex) resolution is from ESA BIOMASS seminar deck; an alternative published number (8.3 m azimuth, 59 m in-ground range) is from a peer-reviewed BIOMASS processor paper.</td></tr><tr><td>• TerraSAR-X: resolution values correspond to Single Look Slant Range Complex (SSC) products as stated in the Airbus TerraSAR-X Image Product Guide; ground-range resolution depends on incidence angle.</td></tr><tr><td>• Always verify the exact product (SLC/GRD/SSC/GSLC etc.) and any multilooking/resampling used in your processing chain before comparing sensors.</td></tr></tbody></table></div>
+      </section>      <section class="panel" id="sentinel-1">
+        <h2>Sentinel-1</h2>
+        <div class="table-wrap"><table><thead><tr><th>Notes</th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody><tr><td>Copernicus Sentinel-1 is a C-band SAR mission. This table summarizes acquisition modes and polarization options as described by SentiWiki.</td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Mode</td><td>Typical use / coverage</td><td>Swath / vignette</td><td>Nominal spatial resolution (single look)</td><td>Polarizations available</td><td>Notes</td><td>Source</td></tr><tr><td>SM (Stripmap)</td><td>Small areas; special requests / emergencies</td><td>80 km swath</td><td>slightly better than 5 m × 5 m</td><td>Single: HH or VV; Dual: HH+HV or VV+VH</td><td>Six overlapping swaths cover a range of 375 km (beam set).</td><td>https://sentiwiki.copernicus.eu/web/s1-mission</td></tr><tr><td>IW (Interferometric Wide Swath)</td><td>Primary land mode</td><td>250 km swath (3 sub-swaths; TOPSAR)</td><td>5 m × 20 m</td><td>Single: HH or VV; Dual: HH+HV or VV+VH</td><td>TOPSAR burst mode (3 sub-swaths).</td><td>https://sentiwiki.copernicus.eu/web/s1-mission</td></tr><tr><td>EW (Extra-Wide Swath)</td><td>Sea-ice/polar/maritime</td><td>400 km swath (410 km in table; 5 sub-swaths; TOPSAR)</td><td>20 m × 40 m</td><td>Single: HH or VV; Dual: HH+HV or VV+VH</td><td>EW SLC contains one image per sub-swath per polarization channel.</td><td>https://sentiwiki.copernicus.eu/web/s1-mission</td></tr><tr><td>WV (Wave)</td><td>Open-ocean vignettes</td><td>20 km × 20 km vignettes every 100 km along-track</td><td>5 m × 5 m</td><td>Single only: HH or VV</td><td>Vignettes alternate between two incidence angle ranges.</td><td>https://sentiwiki.copernicus.eu/web/s1-mission</td></tr></tbody></table></div>
+      </section>      <section class="panel" id="nisar">
+        <h2>NISAR</h2>
+        <div class="table-wrap"><table><thead><tr><th>Notes</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody><tr><td>Values are taken from the NASA Earthdata NISAR platform parameter table (resolution is given as azimuth and slant-range).</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Band</td><td>Frequency (nominal)</td><td>Swath width</td><td>Spatial resolution (as documented)</td><td>Available range bandwidths</td><td>Available polarimetric modes</td><td>Notes</td><td>Source</td></tr><tr><td>S-band (S-SAR)</td><td>3.2 GHz ± 37.5 MHz</td><td>&gt;240 km (except QQP mode)</td><td>7 m (azimuth); 3–24 m (slant-range)</td><td>10, 25, 37.5, 75 MHz</td><td>SP: HH or VV; DP: HH/HV or VV/VH; CP: RH/RV; QQP: HH/HV and VH/VV</td><td>Resolution depends on mode/bandwidth; values are platform-spec summary.</td><td>https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/nisar</td></tr><tr><td>L-band (L-SAR)</td><td>1.257 GHz ± 40 MHz</td><td>&gt;240 km (except 80 MHz BW)</td><td>7 m (azimuth); 3–48 m (slant-range)</td><td>5, 20, 40, 80 MHz (plus additional 5 MHz iono band for 20 &amp; 40 MHz modes)</td><td>SP: HH or VV; DP: HH/HV or VV/VH; CP: RH/RV; QP: HH/HV/VH/VV</td><td>NISAR is dual-frequency (L + S), not L-only.</td><td>https://www.earthdata.nasa.gov/data/platforms/space-based-platforms/nisar</td></tr></tbody></table></div>
+      </section>      <section class="panel" id="biomass">
+        <h2>BIOMASS</h2>
+        <div class="table-wrap"><table><thead><tr><th>Notes</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody><tr><td>Resolution numbers differ by definition (slant-range vs ground-range) and by whether they refer to SLC or multi-look/derived products; sources are listed in the last column.</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Acquisition / instrument</td><td>Band</td><td>Swath width</td><td>SLC spatial resolution (range × azimuth)</td><td>Other published Level-1 SLC resolution (ground-range × azimuth)</td><td>Example derived product resolution</td><td>Polarizations</td><td>Notes</td><td>Sources</td></tr><tr><td>Stripmap acquisitions supporting PolSAR/PolInSAR/TomoSAR stacks</td><td>P-band (mission operates at ~465 MHz in one reference; ~435 MHz in another)</td><td>~50 km (single swath)</td><td>~59 m × 8 m (SLC)</td><td>≈59 m in-ground range and ≈8.3 m azimuth (also notes 25 m slant-range at 6 MHz, 25° incidence)</td><td>50×50 m² product based on ~6 equivalent number of looks (ENL); Level-2 AGB/FH maps at 200 m; disturbance at 50 m</td><td>Full polarimetric (HH, HV, VH, VV)</td><td>BIOMASS is a P-band, fully polarimetric mission with systematic repeat-pass acquisitions. Products and acquisition strategy are often described in terms of mission phases (tomographic phase, then interferometric phase), rather than multiple beam modes.</td><td>https://eebiomass.org/wp-content/uploads/2025/04/20250327-EEBiomass-Seminar-reduced.pdf
+https://eprints.whiterose.ac.uk/159054/1/banda_L2_processor_RS_2020.pdf
+https://www.esa.int/Applications/Observing_the_Earth/FutureEO/Biomass/The_satellite</td></tr></tbody></table></div>
+      </section>      <section class="panel" id="terrasar-x">
+        <h2>TerraSAR-X</h2>
+        <div class="table-wrap"><table><thead><tr><th>Notes</th><th></th><th></th><th></th><th></th><th></th><th></th><th></th></tr></thead><tbody><tr><td>Resolution values correspond to SSC (Single Look Slant Range Complex) products as stated in the TerraSAR-X Image Product Guide; ground-range resolution depends on incidence angle.</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr><tr><td>Mode</td><td>Standard scene size (km, width × length)</td><td>Max acquisition length (km)</td><td>Slant-range resolution (m)</td><td>Azimuth resolution (m)</td><td>Polarization</td><td>Incidence angle range</td><td>Source</td></tr><tr><td>Staring SpotLight (ST)</td><td>4 × 3.7</td><td>3.7</td><td>0.6</td><td>0.24</td><td>Single (VV or HH)</td><td>20° to 45°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>HighRes SpotLight 300 MHz (HS300)</td><td>10 × 5</td><td>5</td><td>0.6</td><td>1.1</td><td>Single (VV or HH)</td><td>20° to 55°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>HighRes SpotLight (HS) - single pol</td><td>10 × 5</td><td>5</td><td>1.2</td><td>1.1</td><td>Single (VV or HH)</td><td>20° to 55°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>HighRes SpotLight (HS) - dual pol</td><td>10 × 5</td><td>5</td><td>1.2</td><td>2.2</td><td>Dual (HH &amp; VV)</td><td>20° to 55°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>SpotLight (SL) - single pol</td><td>10 × 10</td><td>10</td><td>1.2</td><td>1.7</td><td>Single (VV or HH)</td><td>20° to 55°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>SpotLight (SL) - dual pol</td><td>10 × 10</td><td>10</td><td>1.2</td><td>3.4</td><td>Dual (HH &amp; VV)</td><td>20° to 55°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>StripMap (SM) - single pol</td><td>30 × 50</td><td>1,650</td><td>1.2</td><td>3.3</td><td>Single (VV or HH)</td><td>20° to 45°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>StripMap (SM) - dual pol</td><td>15 × 50</td><td>1,650</td><td>1.2</td><td>6.6</td><td>Dual (HH &amp; VV, HH &amp; HV, or VV &amp; VH)</td><td>20° to 45°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>ScanSAR (SC)</td><td>100 × 150</td><td>1,650</td><td>1.2 (at 150 MHz)</td><td>18.5</td><td>Single (VV or HH)</td><td>20° to 45°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr><tr><td>Wide ScanSAR (WS)</td><td>270 × 200</td><td>1,500</td><td>1.7–3.3 (depends on range bandwidth)</td><td>40</td><td>Single (VV, HH, HV or VH)</td><td>15.6° to 49°</td><td>https://www.engesat.com.br/wp-content/uploads/r459_9_201408_tsxx-itd-ma-0009_tsx-productguide_i2.00.pdf</td></tr></tbody></table></div>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
