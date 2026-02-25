@@ -81,18 +81,18 @@ def pipeline_sentinel(
     """
     gpt_kw = dict(gpt_memory=gpt_memory, gpt_parallelism=gpt_parallelism, gpt_timeout=gpt_timeout)
     op = _create_gpt_operator(product_path, output_dir, 'BEAM-DIMAP', **gpt_kw)
-    op.ApplyOrbitFile()
-    orbit_product = op.prod_path          # product after orbit correction
 
     if is_TOPS:
         results = {}
         for swath in ('IW1', 'IW2', 'IW3'):
-            sw_op = _create_gpt_operator(Path(orbit_product), output_dir / swath, 'BEAM-DIMAP', **gpt_kw)
-            sw_op.TopsarSplit(subswath=swath)
+            sw_op = _create_gpt_operator(Path(op.prod_path), output_dir / swath, 'BEAM-DIMAP', **gpt_kw)
+            sw_op.TopsarSplit(subswath=swath) # SPLIT
             results[swath] = _sentinel_post_chain(sw_op)
         return results                    # {IW1: path, IW2: path, IW3: path}
-
+    
     # STRIP mode – no split / deburst needed
+    op.ApplyOrbitFile()
+    orbit_product = op.prod_path          # product after orbit correction
     op.Calibration(output_complex=True)
     # TODO: subaperture processing (do_subaps not yet implemented in GPT class).
     op.polarimetric_decomposition(decomposition="H-Alpha Dual Pol Decomposition", window_size=5)
@@ -448,6 +448,41 @@ def _run_tiling(product_wkt, grid_geoj_path, source_product, intermediate_produc
     return name
 
 
+def _verify_tops_tile_coverage(product_wkt, grid_geoj_path, cuts_outdir, swath_products):
+    """After TOPS tiling, verify that expected tiles exist across all swaths combined.
+
+    In TOPS mode each subswath covers only part of the full product footprint,
+    so per-swath tile failures are expected.  This function checks aggregate
+    coverage and raises only if *no* tile could be produced at all.
+    """
+    contained = check_points_in_polygon(product_wkt, geojson_path=grid_geoj_path)
+    rectangles = rectanglify(contained)
+    if not rectangles:
+        return
+
+    expected_tiles = {rect['BL']['properties']['name'] for rect in rectangles}
+
+    produced_tiles = set()
+    for swath in swath_products:
+        swath_dir = cuts_outdir / swath
+        for h5_file in swath_dir.rglob('*.h5'):
+            produced_tiles.add(h5_file.stem)
+
+    missing = sorted(expected_tiles - produced_tiles)
+    covered = expected_tiles - set(missing)
+
+    print(f'\n[TOPS Aggregate Coverage]')
+    print(f'  Expected tiles (from full product WKT): {len(expected_tiles)}')
+    print(f'  Produced tiles (across all swaths):     {len(covered)}')
+    print(f'  Missing tiles:                          {len(missing)}')
+
+    if missing:
+        print(f'  Missing tile names: {missing}')
+        print(f'  Note: tiles at subswath boundaries may legitimately fail to be subset from any single swath.')
+    if not produced_tiles:
+        raise RuntimeError('TOPS tiling produced zero tiles across all swaths.')
+
+
 def _run_db_indexing(cuts_outdir, name):
     if not db_indexing:
         return
@@ -501,15 +536,31 @@ def main():
     )
 
     # TOPS returns a dict of {swath: path} — tile each swath separately.
+    # Per-swath failures are expected because the full-scene WKT covers all
+    # three subswaths but each processed product covers only its own subswath.
     if isinstance(intermediate, dict):
+        swath_tiling_errors = {}
         for swath, swath_product in intermediate.items():
             name = swath_product.stem
             if tiling:
-                name = _run_tiling(
-                    product_wkt, grid_geoj_path, product_path,
-                    swath_product, cuts_outdir / swath, product_mode, **gpt_kwargs,
-                )
-            _run_db_indexing(cuts_outdir / swath, name)
+                try:
+                    name = _run_tiling(
+                        product_wkt, grid_geoj_path, product_path,
+                        swath_product, cuts_outdir / swath, product_mode, **gpt_kwargs,
+                    )
+                except RuntimeError as exc:
+                    swath_tiling_errors[swath] = exc
+                    name = extract_product_id(swath_product.as_posix()) or swath_product.stem
+                    print(f'[WARN] Tiling for {swath} had partial failures (expected in TOPS mode): {exc}')
+            try:
+                _run_db_indexing(cuts_outdir / swath, name)
+            except Exception as exc:
+                print(f'[WARN] DB indexing for {swath} skipped: {exc}')
+
+        if swath_tiling_errors:
+            _verify_tops_tile_coverage(
+                product_wkt, grid_geoj_path, cuts_outdir, intermediate,
+            )
     else:
         name = intermediate.stem
         if tiling:
