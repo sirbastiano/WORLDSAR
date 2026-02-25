@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - Sentinel-1 Metadata</title>
+  <meta name="description" content="Sentinel-1 tile metadata and processing lineage.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>Sentinel-1 Metadata</h1>
+        <p class="lead">
+          This page summarizes Sentinel-1 tile metadata from <code>docs/src/metadata_sentinel1.md</code>,
+          organized to help interpret product content, geospatial context, and processing lineage.
+        </p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>Tile Inspected</h2>
+        <ul>
+          <li>File: <code>./outputs/tiles/S1A_S3_SLC__1SDV_20151229T152825_20151229T152844_009258_00D5C6_F1C9/123D_472R.h5</code></li>
+          <li>Format: <code>HDF5</code></li>
+          <li>Size: <code>29,536,656</code> bytes</li>
+          <li>Top-level groups: <code>bands</code>, <code>metadata</code></li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Raster Content (<code>/bands</code>)</h2>
+        <p>All bands are <code>float32</code> with shape <code>1000 x 1127</code> and attributes:</p>
+        <ul>
+          <li><code>scaling_factor=1.0</code></li>
+          <li><code>scaling_offset=0.0</code></li>
+          <li><code>log10_scaled=false</code></li>
+        </ul>
+        <p>Available bands:</p>
+        <ul>
+          <li><code>Alpha</code> (unit: <code>deg</code>)</li>
+          <li><code>Anisotropy</code> (unit: <code>anisotropy</code>)</li>
+          <li><code>Entropy</code> (unit: <code>entropy</code>)</li>
+          <li><code>elevation</code> (unit: <code>meters</code>)</li>
+          <li><code>localIncidenceAngle</code> (unit: <code>deg</code>)</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Acquisition and Product Metadata (<code>/metadata/Abstracted_Metadata</code>)</h2>
+        <ul>
+          <li>Mission: <code>SENTINEL-1A</code></li>
+          <li>Product: <code>S1A_S3_SLC__1SDV_20151229T152825_20151229T152844_009258_00D5C6_F1C9</code></li>
+          <li>Product type: <code>SLC</code></li>
+          <li>Acquisition mode: <code>SM</code></li>
+          <li>Pass: <code>ASCENDING</code></li>
+          <li>Polarizations: <code>VH</code>, <code>VV</code></li>
+          <li>Orbit: <code>ABS_ORBIT=9258</code>, <code>REL_ORBIT=86</code>, <code>orbit_cycle=67</code></li>
+          <li>Orbit file: <code>Sentinel Precise S1A_OPER_AUX_POEORB_OPOD_20210310T024756_V20151228T225943_20151230T005943.EOF.zip</code></li>
+          <li>DEM: <code>Copernicus 30m Global DEM</code></li>
+          <li>Terrain-corrected flag: <code>1</code></li>
+          <li>CRS / projection metadata: <code>WGS84</code>, <code>WGS 84 / Auto UTM</code></li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Tile Geospatial Footprint Summary</h2>
+        <ul>
+          <li>First line time: <code>29-DEC-2015 15:28:26.491675</code></li>
+          <li>Last line time: <code>29-DEC-2015 15:28:27.794351</code></li>
+          <li>Center: <code>lat=-11.521651184964222</code>, <code>lon=43.28013085660429</code></li>
+          <li><code>first_near</code>: <code>(-10.957552100862944, 43.18172845991906)</code></li>
+          <li><code>first_far</code>: <code>(-10.958148918602236, 43.28473670480687)</code></li>
+          <li><code>last_near</code>: <code>(-11.04785591676626, 43.18117459028413)</code></li>
+          <li><code>last_far</code>: <code>(-11.048457771824673, 43.284214174201594)</code></li>
+          <li>Pixel spacing: <code>10.0 m</code> range, <code>10.0 m</code> azimuth</li>
+          <li>Raster dimensions: <code>num_output_lines=1000</code>, <code>num_samples_per_line=1127</code></li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Subset Provenance (<code>/metadata/history/SubsetInfo</code>)</h2>
+        <ul>
+          <li>Source product: <code>S1A_S3_SLC__1SDV_20151229T152825_20151229T152844_009258_00D5C6_F1C9_TC</code></li>
+          <li>Subregion origin: <code>x=4436</code>, <code>y=897</code></li>
+          <li>Subregion size: <code>width=1127</code>, <code>height=1000</code></li>
+          <li>Subsampling: <code>x=1</code>, <code>y=1</code></li>
+          <li>Bands in subset: <code>Entropy</code>, <code>Anisotropy</code>, <code>Alpha</code>, <code>elevation</code>, <code>localIncidenceAngle</code></li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Processing Lineage (<code>/metadata/Processing_Graph</code>)</h2>
+        <p>Recorded SNAP graph includes:</p>
+        <ul>
+          <li><code>Apply-Orbit-File</code></li>
+          <li><code>Calibration</code></li>
+          <li><code>Polarimetric-Decomposition</code></li>
+          <li><code>Terrain-Correction</code></li>
+          <li><code>Subset</code></li>
+          <li><code>Write</code> steps between/after operators</li>
+        </ul>
+        <p>Recorded module version in graph nodes: <code>12.0.0</code>.</p>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

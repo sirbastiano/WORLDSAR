@@ -81,7 +81,7 @@ code {
 }
 
 .page-shell {
-  width: min(1280px, calc(100% - 2rem));
+  width: min(1180px, calc(100% - 2rem));
   margin: 1rem auto 2rem auto;
 }
 
@@ -138,55 +138,37 @@ code {
   color: var(--text);
 }
 
-.layout {
+.site-nav {
   margin-top: 1rem;
-  display: grid;
-  grid-template-columns: 280px 1fr;
-  gap: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.toc {
-  position: sticky;
-  top: 1rem;
-  align-self: start;
-  background: var(--bg-panel);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 1rem;
-  box-shadow: 0 12px 28px var(--shadow);
-}
-
-.toc h2 {
-  margin-top: 0;
-  font-size: 1rem;
-}
-
-.toc nav {
-  display: grid;
-  gap: 0.35rem;
-}
-
-.toc a {
+.site-nav a {
   text-decoration: none;
   color: var(--text-soft);
-  border-left: 2px solid transparent;
-  padding: 0.28rem 0.45rem;
-  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg-panel);
+  border-radius: 999px;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.92rem;
   transition: all 120ms ease;
 }
 
-.toc a:hover {
-  background: color-mix(in srgb, var(--bg-soft) 88%, black 12%);
+.site-nav a:hover {
   color: var(--text);
+  border-color: color-mix(in srgb, var(--link) 55%, var(--border) 45%);
 }
 
-.toc a.active {
-  border-left-color: var(--link);
-  background: color-mix(in srgb, var(--bg-soft) 78%, var(--link) 22%);
+.site-nav a.active {
+  background: color-mix(in srgb, var(--bg-soft) 66%, var(--link) 34%);
   color: var(--link-active);
+  border-color: color-mix(in srgb, var(--link) 70%, white 30%);
 }
 
 main {
+  margin-top: 1rem;
   display: grid;
   gap: 1rem;
 }
@@ -214,8 +196,51 @@ main {
   color: var(--text-soft);
 }
 
-.panel ul {
+.panel ul,
+.panel ol {
   margin-top: 0.35rem;
+}
+
+.concept-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.concept {
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-soft) 90%, black 10%);
+  border-radius: 10px;
+  padding: 0.85rem;
+}
+
+.concept h3 {
+  margin: 0 0 0.35rem 0;
+}
+
+.page-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.8rem;
+}
+
+.page-card {
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.85rem;
+  background: color-mix(in srgb, var(--bg-soft) 88%, black 12%);
+  text-decoration: none;
+}
+
+.page-card h3 {
+  margin: 0 0 0.35rem 0;
+  color: var(--text);
+}
+
+.page-card p {
+  margin: 0;
+  color: var(--text-soft);
 }
 
 .code-block {
@@ -282,14 +307,10 @@ td {
   color: var(--text-soft);
 }
 
-@media (max-width: 1040px) {
-  .layout {
+@media (max-width: 980px) {
+  .concept-grid,
+  .page-cards {
     grid-template-columns: 1fr;
-  }
-
-  .toc {
-    position: relative;
-    top: 0;
   }
 }
 

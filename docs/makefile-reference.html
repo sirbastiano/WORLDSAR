@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - Makefile Reference</title>
+  <meta name="description" content="Complete Makefile command reference for WORLDSAR.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>Makefile Command Reference</h1>
+        <p class="lead">All targets listed here are derived from the current repository Makefile.</p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>Targets</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Target</th>
+                <th>Purpose</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>help</code></td><td>Show available command summary.</td><td>Default target.</td></tr>
+              <tr><td><code>down</code></td><td>Download SAR product into <code>./phidown_data</code>.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+              <tr><td><code>ensure-sif</code></td><td>Ensure SIF image exists.</td><td>Calls <code>pull-sif</code> if missing.</td></tr>
+              <tr><td><code>ensure-snap</code></td><td>Ensure <code>.snap</code> userdir exists.</td><td>Calls <code>pull-snap</code> if missing.</td></tr>
+              <tr><td><code>ensure-product</code></td><td>Validate that product input was provided.</td><td>Used by run targets.</td></tr>
+              <tr><td><code>run</code></td><td>Submit job to PBS via <code>qsub</code>.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+              <tr><td><code>run-vm</code></td><td>Run locally without PBS.</td><td>Writes timestamped stdout/stderr logs.</td></tr>
+              <tr><td><code>status</code></td><td>Show current job status.</td><td>Uses <code>qstat -u $(PBS_USER)</code>.</td></tr>
+              <tr><td><code>logs</code></td><td>Show recent log files.</td><td>Shows latest stdout/stderr and scheduler logs.</td></tr>
+              <tr><td><code>clean</code></td><td>Remove output artifacts.</td><td>Removes output, tiles, and DB directories.</td></tr>
+              <tr><td><code>clean-logs</code></td><td>Remove scheduler and runtime logs.</td><td>Cleans files under <code>./logs</code>.</td></tr>
+              <tr><td><code>pull-sif</code></td><td>Pull/update Singularity image from Hugging Face.</td><td>Uses scratch-based HF cache variables.</td></tr>
+              <tr><td><code>pull-sif-generic</code></td><td>Pull/update Singularity image using project-local <code>.tmp</code> cache.</td><td>For environments where scratch cache is not preferred.</td></tr>
+              <tr><td><code>pull-snap</code></td><td>Download and install SNAP userdir.</td><td>Fetches tarball, extracts <code>.snap</code> into project root.</td></tr>
+              <tr><td><code>clean-snap-artifacts</code></td><td>Remove temporary SNAP pull artifacts.</td><td>Deletes <code>./.tmp/snap</code>.</td></tr>
+              <tr><td><code>list-data</code></td><td>List available local SAR data.</td><td>Reads <code>./phidown_data</code>.</td></tr>
+              <tr><td><code>downloader</code></td><td>Download a product via legacy downloader helper.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+              <tr><td><code>uploader</code></td><td>Upload products to Hugging Face.</td><td>Runs <code>scripts/uploader.sh</code>.</td></tr>
+              <tr><td><code>show-cache</code></td><td>Show HF cache and temp directories.</td><td>Prints HF-related env paths.</td></tr>
+              <tr><td><code>clean-hf-cache</code></td><td>Prune Hugging Face cache.</td><td>Runs <code>hf cache prune</code>.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - Getting Started</title>
+  <meta name="description" content="Prerequisites and repository setup for WORLDSAR.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>1-2. Getting Started</h1>
+        <p class="lead">This page covers prerequisites and setup so the runtime workflow is reproducible.</p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>1. Prerequisites</h2>
+        <ul>
+          <li>Linux environment with <code>bash</code></li>
+          <li><code>apptainer</code> (or compatible Singularity runtime)</li>
+          <li><code>hf</code> CLI (Hugging Face CLI)</li>
+          <li><code>curl</code></li>
+          <li>For cluster mode only: <code>qsub</code>/<code>PBS</code> commands available</li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>2. Repository Setup</h2>
+        <p>From repository root, run:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>cd WORLDSAR</code></pre>
+        </div>
+        <p>Optional Python environment setup:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>uv sync</code></pre>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Setup Intent</h2>
+        <p>
+          <code>uv sync</code> is optional for Makefile-driven runtime commands, but useful when you need local Python tooling in this repo.
+          Core processing is containerized via the SIF runtime and SNAP userdir.
+        </p>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

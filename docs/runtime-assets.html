@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - Runtime Assets</title>
+  <meta name="description" content="SIF and SNAP runtime assets for WORLDSAR.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>3. Required Runtime Assets</h1>
+        <p class="lead">Before any run mode, ensure container and SNAP assets are available and understood.</p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>3.1 SIF Container</h2>
+        <p>Use one of:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make pull-sif</code></pre>
+        </div>
+        <p>Or (local <code>.tmp</code> cache mode):</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make pull-sif-generic</code></pre>
+        </div>
+        <p>
+          <code>pull-sif</code> uses configured Hugging Face cache variables. <code>pull-sif-generic</code> uses project-local temporary caching.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>3.2 SNAP Userdir (<code>.snap</code>)</h2>
+        <p>The Makefile supports:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make pull-snap</code></pre>
+        </div>
+        <p>This downloads:</p>
+        <ul>
+          <li><code>https://huggingface.co/datasets/WORLDSAR/Support/resolve/main/snap_userdir.tar.gz</code></li>
+        </ul>
+        <p>
+          The archive is extracted so <code>.snap</code> ends up in project root. Temporary download/extract artifacts are cleaned.
+          Both <code>make run</code> and <code>make run-vm</code> enforce this via <code>ensure-snap</code>.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>3.3 DEM Note</h2>
+        <p>DEM must be downloaded only if internet access is unavailable.</p>
+        <p>If internet is available at runtime, SNAP can fetch DEM data when needed.</p>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

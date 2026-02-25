@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - Operations</title>
+  <meta name="description" content="Monitoring, logs, and cleanup workflows for WORLDSAR.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>6-7. Monitoring, Logs, and Cleanup</h1>
+        <p class="lead">Operate runs safely by monitoring status and cleaning artifacts intentionally.</p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>6. Monitoring and Logs</h2>
+        <p>Cluster mode monitoring commands:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make status
+make logs</code></pre>
+        </div>
+        <p>
+          In local VM mode, logs are written as timestamped files to <code>./logs</code> with
+          <code>.stdout.log</code> and <code>.stderr.log</code> suffixes.
+        </p>
+      </section>
+
+      <section class="panel">
+        <h2>7. Useful Cleanup</h2>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make clean
+make clean-logs
+make clean-snap-artifacts</code></pre>
+        </div>
+        <p><code>make clean-snap-artifacts</code> removes temporary SNAP download/extract files under <code>./.tmp/snap</code>.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Cleanup Strategy</h2>
+        <p>Use <code>clean</code> to reset outputs before a fresh processing run.</p>
+        <p>Use <code>clean-logs</code> to reduce log noise without touching generated data products.</p>
+        <p>Use <code>clean-snap-artifacts</code> after SNAP bootstrap when temporary files are no longer needed.</p>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

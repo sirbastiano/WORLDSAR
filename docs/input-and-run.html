@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - Input and Running</title>
+  <meta name="description" content="Input product handling and execution modes for WORLDSAR.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>4-5. Input Product and Running</h1>
+        <p class="lead">Learn how PRODUCT is interpreted and choose the right execution mode.</p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>4. Input Product</h2>
+        <p>Put your <code>.SAFE</code> product under <code>./phidown_data</code>, or download with:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make down PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+        </div>
+        <p><code>PRODUCT</code> for <code>make run</code> and <code>make run-vm</code> can be:</p>
+        <ul>
+          <li>The <code>.SAFE</code> directory name</li>
+          <li>A full path to that <code>.SAFE</code> directory</li>
+        </ul>
+        <p><code>main.sh</code> normalizes to the basename and resolves under <code>./phidown_data</code>.</p>
+      </section>
+
+      <section class="panel">
+        <h2>5. Running</h2>
+        <h3>5.1 Local VM Run (No PBS)</h3>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make run-vm PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+        </div>
+        <p>Example:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make run-vm PRODUCT=./phidown_data/S1A_S3_SLC__1SDV_20151229T152825_20151229T152844_009258_00D5C6_F1C9.SAFE</code></pre>
+        </div>
+
+        <h3>5.2 Cluster Run (PBS/qsub)</h3>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make run PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>Execution Choice Guidance</h2>
+        <p>Use <code>run-vm</code> first for validation and troubleshooting in your current shell session.</p>
+        <p>Use <code>run</code> when your environment is PBS-enabled and you need queue-based execution.</p>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
