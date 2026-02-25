@@ -1,40 +1,52 @@
-## Pre-requisites
+## Quick start (relative paths)
+
+From repository root:
 
 ```bash
-#!/bin/bash
-
-# Activate conda environment
-source /lustre/projects/1001/miniconda3/bin/activate
-conda activate esa-phisatnet
-
-# Download WORLDSAR apptainer image
-hf download WORLDSAR/support sarpyx.sif \
-  --repo-type dataset \
-  --local-dir /lustre/projects/1001/rdelprete/WORLDSAR
+make pull-sif
+make run
 ```
 
----
-
-## Run WORLDSAR processing on the cluster
+Optional custom overrides:
 
 ```bash
-cd /lustre/projects/1001/rdelprete/logs && qsub /lustre/projects/1001/rdelprete/WORLDSAR/main.sh && watch -n 1 qstat -u u10010007
+make run SIF_IMAGE=./cache/sarpyx.sif MAIN_SCRIPT=main.sh LOG_DIR=./logs PBS_USER=$USER
 ```
 
----
+### Manual alternatives
 
-## Next steps
+Download SIF image:
 
-1. Upload the `.snap` folder (including orbit files) to HuggingFace `WORLDSAR/support`.
-2. Download the `.snap` folder into:
-   ```
-   /lustre/projects/1001/rdelprete/WORLDSAR
-   ```
-3. Bind-mount `.snap` inside `apptainer_worlsar.sh` to:
-   ```
-   /workspace/.snap
-   ```
-4. Bind-mount COPDEM/DEM files inside `apptainer_worlsar.sh` to:
-   ```
-   /workspace/.snap/auxdata/dem/Copernicus 30m Global DEM
-   ```
+```bash
+bash scripts/pull_sif.sh
+```
+
+Download support assets:
+
+```bash
+bash scripts/down_orb.sh
+```
+
+Download a product by name:
+
+```bash
+make down PRODUCT=S1A_IW_SLC__...
+```
+
+### Queue helpers
+
+```bash
+make status
+make logs
+```
+
+### Upload outputs
+
+```bash
+bash scripts/uploader.sh
+```
+
+### Notes
+
+- The `.snap` folder should be available in the repository root (or configured via `SNAP_USER_DIR` in `main.sh`/`Makefile` flows).
+- `main.sh` and `scripts/worldsar_inline.sh` now use repository-relative defaults and overridable environment variables.
