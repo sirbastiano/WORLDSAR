@@ -1,4 +1,4 @@
-.PHONY: help clean clean-logs ensure-sif run status logs pull-sif list-data down downloader uploader show-cache clean-hf-cache
+.PHONY: help clean clean-logs ensure-sif ensure-snap ensure-product run run-vm status logs pull-sif pull-sif-generic pull-snap clean-snap-artifacts list-data down downloader uploader show-cache clean-hf-cache
 
 SHELL := /usr/bin/env bash
 
@@ -14,6 +14,10 @@ OUTPUT_DIR ?= $(PROJECT_ROOT)/OUT/worldsar_output
 TILES_DIR ?= $(PROJECT_ROOT)/OUT/tiles
 DB_DIR ?= $(PROJECT_ROOT)/OUT/DB
 PBS_USER ?= $(USER)
+SNAP_USER_DIR ?= $(PROJECT_ROOT)/.snap
+SNAP_ARCHIVE_URL ?= https://huggingface.co/datasets/WORLDSAR/Support/resolve/main/snap_userdir.tar.gz
+SNAP_TMP_DIR ?= $(PROJECT_ROOT)/.tmp/snap
+SNAP_ARCHIVE_NAME ?= snap_userdir.tar.gz
 
 # Hugging Face cache & temp locations (move off HOME quota)
 # Override on command line if needed:
@@ -34,12 +38,14 @@ export HF_HUB_DISABLE_XET
 # Default target
 help:
 	@echo "WORLDSAR Makefile Commands:"
-	@echo "  make run [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Submit job to queue (downloads SIF if missing)"
+	@echo "  make run PRODUCT=<name> [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Submit job to queue"
+	@echo "  make run-vm PRODUCT=<name> [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Run locally (no qsub)"
 	@echo "  make down PRODUCT=<name> - Download SAR product into \$(PHIDOWN_DATA_DIR)"
 	@echo "  make status       - Check current job status"
 	@echo "  make logs         - View recent log files"
 	@echo "  make clean        - Remove all output files"
 	@echo "  make pull-sif     - Pull/update Singularity container (HF cache on scratch)"
+	@echo "  make pull-snap    - Download and extract .snap userdir into project root"
 	@echo "  make list-data    - List available local SAR data"
 	@echo "  make clean-logs   - Remove scheduler logs matching the current directory pattern"
 	@echo "  make show-cache   - Show HF cache locations"
@@ -51,12 +57,26 @@ down:
 		exit 1; \
 	fi
 	@echo "Downloading product: $(PRODUCT)"
-	bash scripts/downloader.sh "$(PRODUCT)"
+	bash scripts/downloader_uv.sh "$(PRODUCT)"
 
 ensure-sif:
 	@if [ ! -f "$(SIF_IMAGE)" ]; then \
 		echo "SIF image not found: $(SIF_IMAGE). Pulling from $(SIF_REPO)..."; \
 		$(MAKE) pull-sif; \
+	fi
+
+ensure-snap:
+	@if [ ! -d "$(SNAP_USER_DIR)" ]; then \
+		echo "SNAP userdir not found: $(SNAP_USER_DIR). Pulling from Hugging Face..."; \
+		$(MAKE) pull-snap; \
+	fi
+
+ensure-product:
+	@if [ -z "$(PRODUCT)" ]; then \
+		echo "Error: PRODUCT not specified."; \
+		echo "Usage: make run PRODUCT=<product_name>"; \
+		echo "Usage: make run-vm PRODUCT=<product_name>"; \
+		exit 1; \
 	fi
 
 clean:
@@ -67,11 +87,18 @@ clean-logs:
 	@echo "Cleaning log files..."
 	rm -rf "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e*
 
-run: ensure-sif
+run: ensure-product ensure-sif ensure-snap
 	@echo "Submitting job to queue..."
 	mkdir -p "$(LOG_DIR)"
-	cd "$(LOG_DIR)" && qsub ../"$(MAIN_SCRIPT)"
+	cd "$(LOG_DIR)" && qsub ../"$(MAIN_SCRIPT)" "$(PRODUCT)"
 	@echo "Use 'make status' to check job status"
+
+run-vm: ensure-product ensure-sif ensure-snap
+	@echo "Running job locally (no qsub)..."
+	mkdir -p "$(LOG_DIR)"
+	BASE_DIR="." \
+	SIF_IMAGE="./$(SIF_NAME)" \
+	bash "./$(MAIN_SCRIPT)" "$(PRODUCT)"
 
 status:
 	@qstat -u "$(PBS_USER)"
@@ -92,6 +119,61 @@ pull-sif:
 		--repo-type dataset \
 		--cache-dir "$(HF_HUB_CACHE)" \
 		--local-dir "$(SIF_DIR)"
+	rm -rf "$(PROJECT_ROOT)/.tmp"
+
+pull-sif-generic:
+	@echo "Pulling Singularity container to project root with local .tmp folder for caching..."
+	TMP_DIR="$(PROJECT_ROOT)/.tmp"; \
+	HF_HOME_DIR="$$TMP_DIR/hf"; \
+	HF_HUB_CACHE_DIR="$$HF_HOME_DIR/hub"; \
+	HF_XET_CACHE_DIR="$$HF_HOME_DIR/xet"; \
+	HF_ASSETS_CACHE_DIR="$$HF_HOME_DIR/assets"; \
+	HF_TMPDIR_DIR="$$HF_HOME_DIR/tmp"; \
+	mkdir -p "$$TMP_DIR" "$$HF_HUB_CACHE_DIR" "$$HF_XET_CACHE_DIR" "$$HF_ASSETS_CACHE_DIR" "$$HF_TMPDIR_DIR"; \
+	HF_HOME="$$HF_HOME_DIR" \
+	HF_HUB_CACHE="$$HF_HUB_CACHE_DIR" \
+	HF_XET_CACHE="$$HF_XET_CACHE_DIR" \
+	HF_ASSETS_CACHE="$$HF_ASSETS_CACHE_DIR" \
+	TMPDIR="$$HF_TMPDIR_DIR" \
+	HF_HUB_DISABLE_XET=1 \
+	hf download "$(SIF_REPO)" "$(SIF_NAME)" \
+		--repo-type dataset \
+		--cache-dir "$$HF_HUB_CACHE_DIR" \
+		--local-dir "$(PROJECT_ROOT)"
+	rm -rf "$(PROJECT_ROOT)/.tmp"
+
+pull-snap:
+	@echo "Downloading SNAP userdir archive from Hugging Face..."
+	@command -v curl >/dev/null 2>&1 || { echo "Error: 'curl' not found in PATH"; exit 1; }
+	TMP_DIR="$(SNAP_TMP_DIR)"; \
+	ARCHIVE="$$TMP_DIR/$(SNAP_ARCHIVE_NAME)"; \
+	EXTRACT_DIR="$$TMP_DIR/extract"; \
+	cleanup() { rm -rf "$$TMP_DIR"; }; \
+	trap cleanup EXIT; \
+	rm -rf "$$TMP_DIR"; \
+	mkdir -p "$$EXTRACT_DIR"; \
+	curl -L -f --retry 3 --retry-delay 5 -o "$$ARCHIVE" "$(SNAP_ARCHIVE_URL)"; \
+	tar -xzf "$$ARCHIVE" -C "$$EXTRACT_DIR"; \
+	rm -rf "$(SNAP_USER_DIR)"; \
+	if [ -d "$$EXTRACT_DIR/.snap" ]; then \
+		mv "$$EXTRACT_DIR/.snap" "$(SNAP_USER_DIR)"; \
+	elif [ -d "$$EXTRACT_DIR/snap_userdir/.snap" ]; then \
+		mv "$$EXTRACT_DIR/snap_userdir/.snap" "$(SNAP_USER_DIR)"; \
+	else \
+		FOUND_SNAP="$$(find "$$EXTRACT_DIR" -type d -name '.snap' | head -n 1)"; \
+		if [ -z "$$FOUND_SNAP" ]; then \
+			echo "Error: '.snap' directory not found after extracting $(SNAP_ARCHIVE_NAME)"; \
+			exit 1; \
+		fi; \
+		mv "$$FOUND_SNAP" "$(SNAP_USER_DIR)"; \
+	fi; \
+	trap - EXIT; \
+	cleanup; \
+	echo "SNAP userdir ready: $(SNAP_USER_DIR)"
+
+clean-snap-artifacts:
+	@echo "Cleaning SNAP download artifacts..."
+	rm -rf "$(SNAP_TMP_DIR)"
 
 list-data:
 	@echo "Available SAR data:"
