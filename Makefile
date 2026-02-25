@@ -18,6 +18,7 @@ SNAP_USER_DIR ?= $(PROJECT_ROOT)/.snap
 SNAP_ARCHIVE_URL ?= https://huggingface.co/datasets/WORLDSAR/Support/resolve/main/snap_userdir.tar.gz
 SNAP_TMP_DIR ?= $(PROJECT_ROOT)/.tmp/snap
 SNAP_ARCHIVE_NAME ?= snap_userdir.tar.gz
+RUN_TS_FMT ?= +%Y%m%d_%H%M%S
 
 # Hugging Face cache & temp locations (move off HOME quota)
 # Override on command line if needed:
@@ -85,7 +86,7 @@ clean:
 
 clean-logs:
 	@echo "Cleaning log files..."
-	rm -rf "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e*
+	rm -rf "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log
 
 run: ensure-product ensure-sif ensure-snap
 	@echo "Submitting job to queue..."
@@ -96,16 +97,24 @@ run: ensure-product ensure-sif ensure-snap
 run-vm: ensure-product ensure-sif ensure-snap
 	@echo "Running job locally (no qsub)..."
 	mkdir -p "$(LOG_DIR)"
+	@run_ts="$$(date $(RUN_TS_FMT))"; \
+	prod_base="$$(basename "$(PRODUCT)")"; \
+	stdout_log="$(LOG_DIR)/$${run_ts}_$${prod_base}.stdout.log"; \
+	stderr_log="$(LOG_DIR)/$${run_ts}_$${prod_base}.stderr.log"; \
+	echo "VM stdout log: $$stdout_log"; \
+	echo "VM stderr log: $$stderr_log"; \
 	BASE_DIR="." \
 	SIF_IMAGE="./$(SIF_NAME)" \
-	bash "./$(MAIN_SCRIPT)" "$(PRODUCT)"
+	bash "./$(MAIN_SCRIPT)" "$(PRODUCT)" \
+	  > >(tee "$$stdout_log") \
+	  2> >(tee "$$stderr_log" >&2)
 
 status:
 	@qstat -u "$(PBS_USER)"
 
 logs:
 	@echo "Recent log files:"
-	@ls -lht "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* 2>/dev/null | head -10 || echo "No log files found"
+	@ls -lht "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* 2>/dev/null | head -10 || echo "No log files found"
 
 # --- Hugging Face / SIF pull with scratch cache ---
 pull-sif:

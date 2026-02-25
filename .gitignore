@@ -130,3 +130,8 @@ phidown_data/
 /.tmp/
 guide.md
 sarpyx.sif
+/.agents/
+/.codex/
+AGENTS.md
+outputs/
+OUT/

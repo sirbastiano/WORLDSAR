@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Guide Docs</title>
+  <meta name="description" content="Professional dark-theme documentation for running WORLDSAR workflows.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>Operational Guide and Command Reference</h1>
+        <p class="lead">
+          This documentation is aligned with the current <code>Makefile</code> and <code>main.sh</code> in this repository.
+          It mirrors the full structure of <code>guide.md</code> and adds a detailed Makefile target reference.
+        </p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="toc" aria-label="Table of contents">
+        <h2>Contents</h2>
+        <nav>
+          <a href="#prerequisites">1. Prerequisites</a>
+          <a href="#setup">2. Repository Setup</a>
+          <a href="#assets">3. Required Runtime Assets</a>
+          <a href="#input-product">4. Input Product</a>
+          <a href="#running">5. Running</a>
+          <a href="#monitoring">6. Monitoring and Logs</a>
+          <a href="#cleanup">7. Useful Cleanup</a>
+          <a href="#makefile-reference">Makefile Command Reference</a>
+        </nav>
+      </aside>
+
+      <main>
+        <section id="prerequisites" class="panel">
+          <h2>1. Prerequisites</h2>
+          <ul>
+            <li>Linux environment with <code>bash</code></li>
+            <li><code>apptainer</code> (or compatible Singularity runtime)</li>
+            <li><code>hf</code> CLI (Hugging Face CLI)</li>
+            <li><code>curl</code></li>
+            <li>For cluster mode only: <code>qsub</code>/<code>PBS</code> commands available</li>
+          </ul>
+        </section>
+
+        <section id="setup" class="panel">
+          <h2>2. Repository Setup</h2>
+          <p>From repo root:</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>cd /shared/home/rdelprete/PythonProjects/AgenticWork/worldsar_guide/WORLDSAR</code></pre>
+          </div>
+          <p>Optional Python environment setup:</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>uv sync</code></pre>
+          </div>
+        </section>
+
+        <section id="assets" class="panel">
+          <h2>3. Required Runtime Assets</h2>
+
+          <h3>3.1 SIF Container</h3>
+          <p>Use one of:</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make pull-sif</code></pre>
+          </div>
+          <p>Or (local <code>.tmp</code> cache mode):</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make pull-sif-generic</code></pre>
+          </div>
+
+          <h3>3.2 SNAP Userdir (<code>.snap</code>)</h3>
+          <p>The Makefile supports:</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make pull-snap</code></pre>
+          </div>
+          <p>This downloads:</p>
+          <ul>
+            <li><code>https://huggingface.co/datasets/WORLDSAR/Support/resolve/main/snap_userdir.tar.gz</code></li>
+          </ul>
+          <p>
+            It extracts <code>.snap</code> into project root and cleans temporary download artifacts.
+            <code>make run</code> and <code>make run-vm</code> automatically require and bootstrap <code>.snap</code> via <code>ensure-snap</code>.
+          </p>
+
+          <h3>3.3 DEM Note</h3>
+          <p>
+            DEM needs to be downloaded only if you do not have internet access.
+            If internet is available at runtime, SNAP can fetch DEM data as needed.
+          </p>
+        </section>
+
+        <section id="input-product" class="panel">
+          <h2>4. Input Product</h2>
+          <p>Put your <code>.SAFE</code> product under <code>./phidown_data</code>, or download with:</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make down PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+          </div>
+          <p><code>PRODUCT</code> passed to <code>make run</code> / <code>make run-vm</code> can be either:</p>
+          <ul>
+            <li>the <code>.SAFE</code> directory name, or</li>
+            <li>a full path to the <code>.SAFE</code> directory</li>
+          </ul>
+          <p>
+            <code>main.sh</code> normalizes it to the basename and resolves it under <code>./phidown_data</code>.
+          </p>
+        </section>
+
+        <section id="running" class="panel">
+          <h2>5. Running</h2>
+
+          <h3>5.1 Local VM Run (No PBS)</h3>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make run-vm PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+          </div>
+          <p>Example:</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make run-vm PRODUCT=/shared/home/rdelprete/PythonProjects/AgenticWork/worldsar_guide/WORLDSAR/phidown_data/S1A_S3_SLC__1SDV_20151229T152825_20151229T152844_009258_00D5C6_F1C9.SAFE</code></pre>
+          </div>
+
+          <h3>5.2 Cluster Run (PBS/qsub)</h3>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make run PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+          </div>
+        </section>
+
+        <section id="monitoring" class="panel">
+          <h2>6. Monitoring and Logs</h2>
+          <p>Cluster mode commands:</p>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make status
+make logs</code></pre>
+          </div>
+        </section>
+
+        <section id="cleanup" class="panel">
+          <h2>7. Useful Cleanup</h2>
+          <div class="code-block">
+            <button class="copy-btn" type="button">Copy</button>
+            <pre><code>make clean
+make clean-logs
+make clean-snap-artifacts</code></pre>
+          </div>
+          <p>
+            <code>make clean-snap-artifacts</code> removes temporary SNAP download/extract files under <code>./.tmp/snap</code>.
+          </p>
+        </section>
+
+        <section id="makefile-reference" class="panel">
+          <h2>Makefile Command Reference</h2>
+          <p>
+            The table below is derived from the current <code>Makefile</code> target set.
+            Use it as a quick operational index.
+          </p>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Target</th>
+                  <th>Purpose</th>
+                  <th>Notes</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>help</code></td><td>Show available command summary.</td><td>Default target.</td></tr>
+                <tr><td><code>down</code></td><td>Download SAR product into <code>./phidown_data</code>.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+                <tr><td><code>ensure-sif</code></td><td>Ensure SIF image exists.</td><td>Calls <code>pull-sif</code> if missing.</td></tr>
+                <tr><td><code>ensure-snap</code></td><td>Ensure <code>.snap</code> userdir exists.</td><td>Calls <code>pull-snap</code> if missing.</td></tr>
+                <tr><td><code>ensure-product</code></td><td>Validate that product input was provided.</td><td>Used by run targets.</td></tr>
+                <tr><td><code>run</code></td><td>Submit job to PBS via <code>qsub</code>.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+                <tr><td><code>run-vm</code></td><td>Run locally without PBS.</td><td>Writes timestamped stdout/stderr logs.</td></tr>
+                <tr><td><code>status</code></td><td>Show current job status.</td><td>Uses <code>qstat -u $(PBS_USER)</code>.</td></tr>
+                <tr><td><code>logs</code></td><td>Show recent log files.</td><td>Shows latest stdout/stderr and scheduler logs.</td></tr>
+                <tr><td><code>clean</code></td><td>Remove output artifacts.</td><td>Removes output, tiles, and DB directories.</td></tr>
+                <tr><td><code>clean-logs</code></td><td>Remove scheduler and runtime logs.</td><td>Cleans files under <code>./logs</code>.</td></tr>
+                <tr><td><code>pull-sif</code></td><td>Pull/update Singularity image from Hugging Face.</td><td>Uses scratch-based HF cache variables.</td></tr>
+                <tr><td><code>pull-sif-generic</code></td><td>Pull/update Singularity image using project-local <code>.tmp</code> cache.</td><td>For environments where scratch cache is not preferred.</td></tr>
+                <tr><td><code>pull-snap</code></td><td>Download and install SNAP userdir.</td><td>Fetches tarball, extracts <code>.snap</code> into project root.</td></tr>
+                <tr><td><code>clean-snap-artifacts</code></td><td>Remove temporary SNAP pull artifacts.</td><td>Deletes <code>./.tmp/snap</code>.</td></tr>
+                <tr><td><code>list-data</code></td><td>List available local SAR data.</td><td>Reads <code>./phidown_data</code>.</td></tr>
+                <tr><td><code>downloader</code></td><td>Download a product via legacy downloader helper.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+                <tr><td><code>uploader</code></td><td>Upload products to Hugging Face.</td><td>Runs <code>scripts/uploader.sh</code>.</td></tr>
+                <tr><td><code>show-cache</code></td><td>Show HF cache and temp directories.</td><td>Prints HF-related env paths.</td></tr>
+                <tr><td><code>clean-hf-cache</code></td><td>Prune Hugging Face cache.</td><td>Runs <code>hf cache prune</code>.</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>
