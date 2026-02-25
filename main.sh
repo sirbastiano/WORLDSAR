@@ -13,10 +13,16 @@ DATA_DIR="${DATA_DIR:-${BASE_DIR}/phidown_data}"
 PY_SCRIPT_DIR="${PY_SCRIPT_DIR:-${BASE_DIR}/pyscripts}"
 SIF_IMAGE="${SIF_IMAGE:-${BASE_DIR}/sarpyx.sif}"
 
-PROD_PATH="${DATA_DIR}/S1A_S3_SLC__1SDV_20160820T171616_20160820T171644_012687_013EFB_B6D5.SAFE"
-#PROD_PATH="${DATA_DIR}/S1C_IW_SLC__1SDV_20251024T155554_20251024T155621_004706_0094C5_A05A.SAFE"
-
-PRODUCT_NAME="$(basename "${PROD_PATH}")"
+# Product selection: first positional arg, then PRODUCT env var.
+PRODUCT_NAME="${1:-${PRODUCT:-}}"
+if [[ -z "${PRODUCT_NAME}" ]]; then
+  echo "ERROR: Product name is required." >&2
+  echo "Usage: ${0##*/} <product_name>" >&2
+  echo "Or set PRODUCT=<product_name>" >&2
+  exit 2
+fi
+PRODUCT_NAME="$(basename "${PRODUCT_NAME}")"
+PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
 
 OUTPUT_PATH="${OUTPUT_PATH:-${BASE_DIR}/OUT/worldsar_output}"
 CUTS_OUTDIR="${CUTS_OUTDIR:-${BASE_DIR}/OUT/tiles}"

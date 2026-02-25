@@ -1,169 +1,116 @@
-# WORLDSAR Processor Guide (single-image, Makefile-focused)
+# WORLDSAR Guide
 
-This guide reflects the current repo structure and focuses on running one SAR scene with the least indirection.
+This guide is aligned with the current `Makefile` and `main.sh` in this repo.
 
-## Current entrypoint used in this branch
+## 1. Prerequisites
 
-Use:
+- Linux environment with `bash`
+- `apptainer` (or compatible Singularity runtime)
+- `hf` CLI (Hugging Face CLI)
+- `curl`
+- For cluster mode only: `qsub`/PBS commands available
 
-- `pyscripts/worldsar.py` (current CLI)
-- `main.sh` (PBS wrapper, cluster-oriented)
-- `scripts/worldsar_inline.sh` (legacy wrapper, still PBS-oriented)
+## 2. Repository Setup
 
-## What `worldsar.py` does for one image
+From repo root:
 
-For a single product it:
+```bash
+cd /shared/home/rdelprete/PythonProjects/AgenticWork/worldsar_guide/WORLDSAR
+```
 
-1. Infers mission mode (`S1TOPS`, `S1STRIP`, `TSX`, `CSG`, `BM`, `NISAR`) from filename.
-2. Runs mission preprocessing with SNAP GPT.
-3. Cuts tiles from the processed product with your grid polygon.
-4. Builds tile metadata in a parquet file under DB output.
+Optional Python environment setup:
 
-## New files you should know in this repo
+```bash
+uv sync
+```
 
-- `scripts/pull_sif.sh` downloads the Apptainer/Singularity image (legacy helper).
-- `scripts/down_orb.sh` downloads `.snap` support assets from HF.
-- `Makefile` has convenience commands and now checks for the SIF image on `make run`.
-- `.snap` is required for SNAP runtime assets (orbits, DEM caches, etc.).
+## 3. Required Runtime Assets
 
-## Required runtime files
+### 3.1 SIF container
 
-From Hugging Face:
-
-- `WORLDSAR/Support` includes `.snap` assets
-  - orbit files (used by Apply-Orbit-File)
-  - optional additional support files depending on your setup
-  - URL: `https://huggingface.co/datasets/WORLDSAR/Support/tree/main`
-
-Before running, download into a local folder and mount it as `<container_root>/.snap` inside the container.
-
-## Minimum arguments you must provide (inside container)
-
-You will pass these to `worldsar.py` directly:
-
-- `--input <container_root>/input/<PRODUCT>`
-- `--output <container_root>/output`
-- `--cuts-outdir <container_root>/cuts`
-- `--gpt-path <container_root>/.snap/bin/gpt`
-- `--grid-path <container_root>/grid.geojson`
-- `--db-dir <container_root>/db`
-- `--snap-userdir <container_root>/.snap`
-
-Optional but recommended:
-
-- `--product-wkt "POLYGON (...)"`
-  - required for non-Sentinel-1 inputs
-  - for Sentinel-1, CLI can often infer it automatically
-- `--gpt-memory 16G` (or higher)
-- `--gpt-parallelism 8` (tune based on CPUs)
-- `--gpt-timeout 3600`
-
-## Makefile workflow (cluster-first)
-
-Run commands from repo root.
-
-1. Pull the SIF image (or let `make run` do it):
+Use one of:
 
 ```bash
 make pull-sif
 ```
 
-2. Run and submit the job:
+or (local `.tmp` cache mode):
 
 ```bash
-make run
+make pull-sif-generic
 ```
 
-`make run` behavior:
+### 3.2 SNAP userdir (`.snap`)
 
-- Checks `$(SIF_IMAGE)` and downloads it if missing.
-- Submits `main.sh` via `qsub`.
-
-You can override defaults directly from CLI:
+The Makefile now supports:
 
 ```bash
-make run \
-  SIF_IMAGE=./cache/sarpyx.sif \
-  MAIN_SCRIPT=main.sh \
-  LOG_DIR=./logs \
-  PBS_USER=$USER
+make pull-snap
 ```
 
-3. Monitor the queue/logs:
+This downloads:
+
+- `https://huggingface.co/datasets/WORLDSAR/Support/resolve/main/snap_userdir.tar.gz`
+
+Then extracts `.snap` into project root and cleans temporary download artifacts.
+
+`make run` and `make run-vm` now automatically require and bootstrap `.snap` via `ensure-snap`.
+
+### 3.3 DEM note
+
+DEM needs to be downloaded only if you do not have internet access.
+If internet is available at runtime, SNAP can fetch DEM data as needed.
+
+## 4. Input Product
+
+Put your `.SAFE` product under `./phidown_data`, or download with:
+
+```bash
+make down PRODUCT=<product_name>.SAFE
+```
+
+`PRODUCT` passed to `make run` / `make run-vm` can be either:
+
+- the `.SAFE` directory name, or
+- a full path to the `.SAFE` directory
+
+`main.sh` normalizes it to the basename and resolves it under `./phidown_data`.
+
+## 5. Running
+
+### 5.1 Local VM run (no PBS)
+
+```bash
+make run-vm PRODUCT=<product_name>.SAFE
+```
+
+Example:
+
+```bash
+make run-vm PRODUCT=/shared/home/rdelprete/PythonProjects/AgenticWork/worldsar_guide/WORLDSAR/phidown_data/S1A_S3_SLC__1SDV_20151229T152825_20151229T152844_009258_00D5C6_F1C9.SAFE
+```
+
+### 5.2 Cluster run (PBS/qsub)
+
+```bash
+make run PRODUCT=<product_name>.SAFE
+```
+
+## 6. Monitoring and Logs
+
+Cluster mode:
 
 ```bash
 make status
 make logs
 ```
 
-4. Download products:
-
-```bash
-make down PRODUCT=S1A_IW_SLC__...
-```
-
-5. Cleanup:
+## 7. Useful Cleanup
 
 ```bash
 make clean
 make clean-logs
+make clean-snap-artifacts
 ```
 
-## No-PBS single-image reference run
-
-If you need a manual local flow, keep paths relative:
-
-```bash
-export PROJECT_DIR=.
-export INPUT_DIR=./data
-export INPUT_NAME=YOUR_PRODUCT.SAFE   # e.g. S1C_IW_SLC__... .SAFE directory
-export SIF_IMAGE=./sarpyx.sif
-export SNAP_HOME=./.snap
-export GRID_HOST=./grid_10km.geojson
-export OUTPUT_DIR=./output/processed
-export CUTS_DIR=./output/cuts
-export DB_DIR=./output/db
-export WORKDIR=/work
-
-mkdir -p "$OUTPUT_DIR" "$CUTS_DIR" "$DB_DIR"
-
-apptainer exec \
-  --bind "$PROJECT_DIR:$WORKDIR/WORLDSAR" \
-  --bind "$SNAP_HOME:$WORKDIR/.snap" \
-  --bind "$GRID_HOST:$WORKDIR/grid.geojson:ro" \
-  --bind "$INPUT_DIR:$WORKDIR/input:ro" \
-  --bind "$OUTPUT_DIR:$WORKDIR/output" \
-  --bind "$CUTS_DIR:$WORKDIR/cuts" \
-  --bind "$DB_DIR:$WORKDIR/db" \
-  "$SIF_IMAGE" \
-  python "$WORKDIR/WORLDSAR/pyscripts/worldsar.py" \
-    --input "$WORKDIR/input/$INPUT_NAME" \
-    --output "$WORKDIR/output" \
-    --cuts-outdir "$WORKDIR/cuts" \
-    --gpt-path "$WORKDIR/.snap/bin/gpt" \
-    --grid-path "$WORKDIR/grid.geojson" \
-    --db-dir "$WORKDIR/db" \
-    --snap-userdir "$WORKDIR/.snap" \
-    --gpt-memory 16G \
-    --gpt-parallelism 8 \
-    --gpt-timeout 3600 \
-    --product-wkt "POLYGON ((14.9 40.8, 15.3 42.4, 12.2 42.8, 11.9 41.2, 14.9 40.8))"
-```
-
-For Sentinel-1 you can usually remove `--product-wkt` and let `worldsar.py` extract it from metadata.
-
-## Quick output checklist
-
-After success:
-
-- `OUTPUT_DIR` gets intermediate processed files (BEAM-DIMAP / GeoTIFF depending on mode).
-- `CUTS_DIR/<product_id>/` contains one `.h5` file per tile.
-- `DB_DIR` contains a parquet metadata table.
-
-For `S1TOPS`, cutting is done per swath (`IW1`, `IW2`, `IW3`) under the cuts root.
-
-## Legacy wrappers and why this guide uses direct call
-
-- `main.sh` and `scripts/worldsar_inline.sh` are present and keep legacy wrappers, but their settings are now configurable.
-- Running `pyscripts/worldsar.py` directly is safer and clearer for one-image, local testing.
-- If you later move back to cluster mode, tune `main.sh` inputs and paths to match your environment.
+`make clean-snap-artifacts` removes temporary SNAP download/extract files under `./.tmp/snap`.
