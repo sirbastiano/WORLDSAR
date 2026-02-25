@@ -124,7 +124,9 @@ cython_debug/
 .vscode/
 
 phidown_data/
-.s5cfg
+*.s5cfg
+
 /.snap/
 /.tmp/
 guide.md
+sarpyx.sif
