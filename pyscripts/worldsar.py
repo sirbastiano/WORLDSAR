@@ -94,7 +94,19 @@ def pipeline_sentinel(
     op.ApplyOrbitFile()
     orbit_product = op.prod_path          # product after orbit correction
     op.Calibration(output_complex=True)
+
     # TODO: subaperture processing (do_subaps not yet implemented in GPT class).
+    """
+    # for fast checks subset operation
+    fp_subset = op.subset(geo_region="POLYGON ((5.969696 51.118179, 6.256714 51.118179, 6.256714 51.270508, 5.969696 51.270508, 5.969696 51.118179))")
+    op.do_subaps(
+        safe_path=product_path,
+        dim_path=fp_subset,
+        n_decompositions=[2],
+        byte_order=1,
+        VERBOSE=False,
+    )
+    """
     op.polarimetric_decomposition(decomposition="H-Alpha Dual Pol Decomposition", window_size=5)
     op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=10.0)
     return op.prod_path
