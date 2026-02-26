@@ -113,6 +113,7 @@ HF_HUB_CACHE ?= $(HF_HOME)/hub
 HF_XET_CACHE ?= $(HF_HOME)/xet
 HF_ASSETS_CACHE ?= $(HF_HOME)/assets
 HF_TMPDIR ?= $(HF_HOME)/tmp
+HF_UPLOAD_NUM_WORKERS ?= 1
 
 # Optional: disable Xet if it causes trouble (set to 1 to disable)
 # HF_HUB_DISABLE_XET ?= 1
@@ -330,7 +331,8 @@ downloader:
 
 uploader:
 	@echo "Uploading products to Hugging Face..."
-	bash scripts/uploader.sh
+	@# SpaceHPC uploads need single-worker mode to avoid HF client issues on shared filesystems.
+	HF_UPLOAD_NUM_WORKERS="$(HF_UPLOAD_NUM_WORKERS)" bash scripts/uploader.sh
 
 show-cache:
 	@echo "HF_HOME=$(HF_HOME)"

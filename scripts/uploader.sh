@@ -7,11 +7,12 @@ CONDA_ACTIVATE_SCRIPT="${CONDA_ACTIVATE_SCRIPT:-}"
 CONDA_ENV="${CONDA_ENV:-hf}"
 TILES_DIR="${TILES_DIR:-${PROJECT_DIR}/OUT/tiles}"
 DB_DIR="${DB_DIR:-${PROJECT_DIR}/OUT/DB}"
+HF_UPLOAD_NUM_WORKERS="${HF_UPLOAD_NUM_WORKERS:-1}"
 
 if [ -n "${CONDA_ACTIVATE_SCRIPT}" ] && [ -f "${CONDA_ACTIVATE_SCRIPT}" ]; then
 	source "${CONDA_ACTIVATE_SCRIPT}"
 	conda activate "${CONDA_ENV}"
 fi
 
-hf upload-large-folder "WORLDSAR/S1Toy" "${TILES_DIR}/" --repo-type=dataset --num-workers 1
+hf upload-large-folder "WORLDSAR/S1Toy" "${TILES_DIR}/" --repo-type=dataset --num-workers "${HF_UPLOAD_NUM_WORKERS}"
 hf upload "WORLDSAR/Database" "${DB_DIR}/" --repo-type=dataset

@@ -88,7 +88,7 @@ HPC_PROJECT_ROOT ?= /lustre/projects/1001/rdelprete/WORLDSAR</code></pre>
               <tr><td><code>clean-snap-artifacts</code></td><td>Remove temporary SNAP pull artifacts.</td><td>Deletes <code>./.tmp/snap</code>.</td></tr>
               <tr><td><code>list-data</code></td><td>List available local SAR data.</td><td>Reads <code>./phidown_data</code>.</td></tr>
               <tr><td><code>downloader</code></td><td>Download a product via legacy downloader helper.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
-              <tr><td><code>uploader</code></td><td>Upload products to Hugging Face.</td><td>Runs <code>scripts/uploader.sh</code>.</td></tr>
+              <tr><td><code>uploader</code></td><td>Upload products to Hugging Face.</td><td>Runs <code>scripts/uploader.sh</code>. On SpaceHPC, use <code>HF_UPLOAD_NUM_WORKERS=1</code> (passes <code>--num-workers 1</code>) to avoid upload failures.</td></tr>
               <tr><td><code>show-cache</code></td><td>Show HF cache and temp directories.</td><td>Prints HF-related env paths.</td></tr>
               <tr><td><code>clean-hf-cache</code></td><td>Prune Hugging Face cache.</td><td>Runs <code>hf cache prune</code>.</td></tr>
             </tbody>
