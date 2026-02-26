@@ -12,22 +12,9 @@ WORLDSAR_MODE_DEFAULT="${WORLDSAR_MODE_DEFAULT:-vm}"
 WORLDSAR_MODE_HPC="${WORLDSAR_MODE_HPC:-hpc}"
 WORLDSAR_MODE_VM="${WORLDSAR_MODE_VM:-vm}"
 
-<<<<<<< Updated upstream
 # ---- Runtime mode ----
 WORLDSAR_MODE="${WORLDSAR_MODE:-${RUN_MODE:-${WORLDSAR_MODE_DEFAULT}}}"
 RUN_MODE="${WORLDSAR_MODE}"
-=======
-# =========================== HARDCODED PATHS ===========================
-# SPACEHPC PATHS (ovverride):
-BASE_DIR="/lustre/projects/1001/rdelprete/WORLDSAR"
-SCRIPT_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/scripts"
-DATA_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/phidown_data"
-PY_SCRIPT_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/pyscripts"
-SIF_IMAGE="/lustre/projects/1001/rdelprete/WORLDSAR/sarpyx.sif"
-PRODUCT_NAME="S1A_S3_SLC__1SDV_20151205T152826_20151205T152845_008908_00CBF5_6E3B.SAFE" # READ FROM ENV 
-PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
-# =========================== COMMENT OUT/ADJUST BELOW AS NEEDED ===========================
->>>>>>> Stashed changes
 
 # ---- Paths (override via Makefile/env; hpc mode keeps repo-specific hardcoded defaults) ----
 SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)}"
