@@ -125,7 +125,8 @@ export HF_HUB_DISABLE_XET
 help:
 	@echo "WORLDSAR Makefile Commands:"
 	@echo "  WORLDSAR_MODE=vm|hpc (default: vm)"
-	@echo "  make run [PRODUCT=<name>] [WORLDSAR_MODE=vm|hpc] [SIF_IMAGE=...][MAIN_SCRIPT=main.sh] - Run local VM or submit PBS job"
+	@echo "  make run [PRODUCT=<name_or_path>] [WORLDSAR_MODE=vm|hpc] [SIF_IMAGE=...] [MAIN_SCRIPT=main.sh] - Run with selected mode"
+	@echo "    In both modes PRODUCT is passed via environment (-v to qsub in HPC), no positional args are sent to main.sh."
 	@echo "  make down PRODUCT=<name> - Download SAR product into \$(PHIDOWN_DATA_DIR)"
 	@echo "  make status       - Check current job status"
 	@echo "  make logs         - View recent log files"
@@ -159,9 +160,9 @@ ensure-snap:
 
 ensure-product:
 	@if [ -z "$(PRODUCT)" ]; then \
-		echo "Error: PRODUCT not specified."; \
-		echo "Usage: make run PRODUCT=<product_name>"; \
-		exit 1; \
+			echo "Error: PRODUCT not specified."; \
+			echo "Usage: make run PRODUCT=<product_name_or_abs_path>"; \
+			exit 1; \
 	fi
 
 ensure-runtime: ensure-product ensure-sif ensure-snap

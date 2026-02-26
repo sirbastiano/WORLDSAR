@@ -10,12 +10,12 @@ make run PRODUCT=<product_name>           # VM (default)
 Optional custom overrides:
 
 ```bash
-WORLDSAR_MODE=hpc make run PRODUCT=<product_name> \
+WORLDSAR_MODE=hpc make run PRODUCT=<product_name_or_path> \
   WORLDSAR_MODE=hpc SIF_IMAGE=./cache/sarpyx.sif MAIN_SCRIPT=main.sh LOG_DIR=./logs PBS_USER=$USER
 ```
 
-- Local VM mode: `make run PRODUCT=<product_name>` (default mode)
-- Cluster mode: `WORLDSAR_MODE=hpc make run PRODUCT=<product_name>`
+- Local VM mode: `make run PRODUCT=<product_name_or_path>` (default mode)
+- Cluster mode: `WORLDSAR_MODE=hpc make run PRODUCT=<product_name_or_path>`
 
 ### Manual alternatives
 

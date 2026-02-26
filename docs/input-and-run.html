@@ -72,9 +72,10 @@
         <h3>5.2 Cluster Run (PBS/qsub)</h3>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
-          <pre><code>WORLDSAR_MODE=hpc make run PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+          <pre><code>WORLDSAR_MODE=hpc make run PRODUCT=&lt;product_name_or_full_path&gt;.SAFE</code></pre>
         </div>
         <p>Equivalent behavior is achieved by setting <code>WORLDSAR_MODE=hpc</code> so the Makefile uses HPC defaults for paths and scheduler options.</p>
+        <p>In PBS mode, PRODUCT is injected through qsub environment variables (<code>-v PRODUCT=...</code>), so qsub does not receive positional script arguments.</p>
         <p>For your workflow, HPC hardcoded defaults are also defined near the top of <code>main.sh</code> (for example <code>HPC_BASE_DIR</code> and related paths).</p>
         <p>Set Makefile mode defaults in <code>Makefile</code> (top section): <code>WORLDSAR_MODE</code>, <code>VM_PROJECT_ROOT</code>, <code>HPC_PROJECT_ROOT</code>; use command-line overrides for one-off runs.</p>
       </section>
