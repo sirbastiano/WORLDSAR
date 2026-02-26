@@ -245,7 +245,7 @@
     input.setAttribute("aria-label", "Search this page");
     searchWrap.appendChild(input);
 
-    var results = document.createElement("div");
+    var results = document.createElement("output");
     results.className = "doc-search-results";
     results.setAttribute("role", "listbox");
     results.hidden = true;
