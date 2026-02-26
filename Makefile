@@ -46,7 +46,7 @@ HPC_GPT_PARALLELISM ?= 164
 HPC_GPT_TIMEOUT ?= 3600
 HPC_PBS_QUEUE ?= cpu_std
 HPC_PBS_WALLTIME ?= 02:00:00
-HPC_PBS_SELECT ?= 1:ncpus=192:mem=128g
+HPC_PBS_SELECT ?= select=1:ncpus=192:mem=128g
 
 # ---- Effective runtime configuration ----
 ifneq ($(filter vm hpc,$(WORLDSAR_MODE)),)
