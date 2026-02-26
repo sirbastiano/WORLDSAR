@@ -2,22 +2,107 @@
 
 SHELL := /usr/bin/env bash
 
-PROJECT_ROOT ?= .
-SIF_DIR ?= $(PROJECT_ROOT)
-SIF_NAME ?= sarpyx.sif
-SIF_IMAGE ?= $(SIF_DIR)/$(SIF_NAME)
-SIF_REPO ?= WORLDSAR/support
-MAIN_SCRIPT ?= main.sh
-LOG_DIR ?= $(PROJECT_ROOT)/logs
-PHIDOWN_DATA_DIR ?= $(PROJECT_ROOT)/phidown_data
-OUTPUT_DIR ?= $(PROJECT_ROOT)/OUT/worldsar_output
-TILES_DIR ?= $(PROJECT_ROOT)/OUT/tiles
-DB_DIR ?= $(PROJECT_ROOT)/OUT/DB
-PBS_USER ?= $(USER)
-SNAP_USER_DIR ?= $(PROJECT_ROOT)/.snap
+# Manual mode switch: set WORLDSAR_MODE=vm or hpc at make time.
+WORLDSAR_MODE ?= vm
+RUN_MODE ?= $(WORLDSAR_MODE)
+
+# ---- VM defaults ----
+VM_PROJECT_ROOT ?= .
+VM_BASE_DIR ?= $(abspath $(VM_PROJECT_ROOT))
+VM_DATA_DIR ?= $(VM_BASE_DIR)/phidown_data
+VM_PY_SCRIPT_DIR ?= $(VM_BASE_DIR)/pyscripts
+VM_SIF_DIR ?= $(VM_BASE_DIR)
+VM_SIF_NAME ?= sarpyx.sif
+VM_SIF_IMAGE ?= $(VM_SIF_DIR)/$(VM_SIF_NAME)
+VM_SNAP_USER_DIR ?= $(VM_BASE_DIR)/.snap
+VM_OUTPUT_DIR ?= $(VM_BASE_DIR)/OUT/worldsar_output
+VM_TILES_DIR ?= $(VM_BASE_DIR)/OUT/tiles
+VM_DB_DIR ?= $(VM_BASE_DIR)/OUT/DB
+VM_WORKSPACE_PREFIX ?= /work
+VM_GRID_PATH ?= $(VM_WORKSPACE_PREFIX)/grid/grid_10km.geojson
+VM_GPT_MEMORY ?= 64G
+VM_GPT_PARALLELISM ?= 16
+VM_GPT_TIMEOUT ?= 3600
+VM_PBS_QUEUE ?=
+VM_PBS_WALLTIME ?=
+VM_PBS_SELECT ?=
+
+# ---- HPC defaults (adjust for your cluster/user) ----
+HPC_PROJECT_ROOT ?= /lustre/projects/1001/rdelprete/WORLDSAR
+HPC_BASE_DIR ?= $(abspath $(HPC_PROJECT_ROOT))
+HPC_DATA_DIR ?= $(HPC_BASE_DIR)/phidown_data
+HPC_PY_SCRIPT_DIR ?= $(HPC_BASE_DIR)/pyscripts
+HPC_SIF_DIR ?= $(HPC_BASE_DIR)
+HPC_SIF_NAME ?= sarpyx.sif
+HPC_SIF_IMAGE ?= $(HPC_SIF_DIR)/$(HPC_SIF_NAME)
+HPC_SNAP_USER_DIR ?= $(HPC_BASE_DIR)/.snap
+HPC_OUTPUT_DIR ?= $(HPC_BASE_DIR)/OUT/worldsar_output
+HPC_TILES_DIR ?= $(HPC_BASE_DIR)/OUT/tiles
+HPC_DB_DIR ?= $(HPC_BASE_DIR)/OUT/DB
+HPC_WORKSPACE_PREFIX ?= /work
+HPC_GRID_PATH ?= $(HPC_WORKSPACE_PREFIX)/grid/grid_10km.geojson
+HPC_GPT_MEMORY ?= 64G
+HPC_GPT_PARALLELISM ?= 164
+HPC_GPT_TIMEOUT ?= 3600
+HPC_PBS_QUEUE ?= cpu_std
+HPC_PBS_WALLTIME ?= 02:00:00
+HPC_PBS_SELECT ?= 1:ncpus=192:mem=128g
+
+# ---- Effective runtime configuration ----
+ifneq ($(filter vm hpc,$(WORLDSAR_MODE)),)
+else
+$(error WORLDSAR_MODE must be vm or hpc)
+endif
+
+ifeq ($(WORLDSAR_MODE),hpc)
+BASE_DIR ?= $(HPC_BASE_DIR)
+DATA_DIR ?= $(HPC_DATA_DIR)
+PY_SCRIPT_DIR ?= $(HPC_PY_SCRIPT_DIR)
+SIF_DIR ?= $(HPC_SIF_DIR)
+SIF_NAME ?= $(HPC_SIF_NAME)
+SIF_IMAGE ?= $(HPC_SIF_IMAGE)
+SNAP_USER_DIR ?= $(HPC_SNAP_USER_DIR)
+OUTPUT_DIR ?= $(HPC_OUTPUT_DIR)
+TILES_DIR ?= $(HPC_TILES_DIR)
+DB_DIR ?= $(HPC_DB_DIR)
+WORKSPACE_PREFIX ?= $(HPC_WORKSPACE_PREFIX)
+GRID_PATH ?= $(HPC_GRID_PATH)
+GPT_MEMORY ?= $(HPC_GPT_MEMORY)
+GPT_PARALLELISM ?= $(HPC_GPT_PARALLELISM)
+GPT_TIMEOUT ?= $(HPC_GPT_TIMEOUT)
+PBS_QUEUE ?= $(HPC_PBS_QUEUE)
+PBS_WALLTIME ?= $(HPC_PBS_WALLTIME)
+PBS_SELECT ?= $(HPC_PBS_SELECT)
+else
+BASE_DIR ?= $(VM_BASE_DIR)
+DATA_DIR ?= $(VM_DATA_DIR)
+PY_SCRIPT_DIR ?= $(VM_PY_SCRIPT_DIR)
+SIF_DIR ?= $(VM_SIF_DIR)
+SIF_NAME ?= $(VM_SIF_NAME)
+SIF_IMAGE ?= $(VM_SIF_IMAGE)
+SNAP_USER_DIR ?= $(VM_SNAP_USER_DIR)
+OUTPUT_DIR ?= $(VM_OUTPUT_DIR)
+TILES_DIR ?= $(VM_TILES_DIR)
+DB_DIR ?= $(VM_DB_DIR)
+WORKSPACE_PREFIX ?= $(VM_WORKSPACE_PREFIX)
+GRID_PATH ?= $(VM_GRID_PATH)
+GPT_MEMORY ?= $(VM_GPT_MEMORY)
+GPT_PARALLELISM ?= $(VM_GPT_PARALLELISM)
+GPT_TIMEOUT ?= $(VM_GPT_TIMEOUT)
+PBS_QUEUE ?=
+PBS_WALLTIME ?=
+PBS_SELECT ?=
+endif
+
+PROJECT_ROOT ?= $(BASE_DIR)
 SNAP_ARCHIVE_URL ?= https://huggingface.co/datasets/WORLDSAR/Support/resolve/main/snap_userdir.tar.gz
-SNAP_TMP_DIR ?= $(PROJECT_ROOT)/.tmp/snap
+SNAP_TMP_DIR ?= $(BASE_DIR)/.tmp/snap
 SNAP_ARCHIVE_NAME ?= snap_userdir.tar.gz
+MAIN_SCRIPT ?= main.sh
+SIF_REPO ?= WORLDSAR/support
+LOG_DIR ?= $(BASE_DIR)/logs
+PHIDOWN_DATA_DIR ?= $(BASE_DIR)/phidown_data
+PBS_USER ?= $(USER)
 RUN_TS_FMT ?= +%Y%m%d_%H%M%S
 
 # Hugging Face cache & temp locations (move off HOME quota)
@@ -39,8 +124,9 @@ export HF_HUB_DISABLE_XET
 # Default target
 help:
 	@echo "WORLDSAR Makefile Commands:"
-	@echo "  make run [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Submit job to queue"
-	@echo "  make run-vm PRODUCT=<name> [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Run locally (no qsub)"
+	@echo "  WORLDSAR_MODE=vm|hpc (default: vm)"
+	@echo "  make run [PRODUCT=<name>] [WORLDSAR_MODE=hpc] [SIF_IMAGE=...][MAIN_SCRIPT=main.sh] - Submit job to PBS queue (hpc mode)"
+	@echo "  make run-vm PRODUCT=<name> [WORLDSAR_MODE=vm] [SIF_IMAGE=...][MAIN_SCRIPT=main.sh] - Run locally (no qsub)"
 	@echo "  make down PRODUCT=<name> - Download SAR product into \$(PHIDOWN_DATA_DIR)"
 	@echo "  make status       - Check current job status"
 	@echo "  make logs         - View recent log files"
@@ -89,8 +175,17 @@ clean-logs:
 	rm -rf "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log
 
 run: ensure-sif ensure-snap
+	@if [ "$(WORLDSAR_MODE)" = "vm" ]; then \
+		echo "ERROR: run target is cluster mode only. Use make run-vm for VM execution or set WORLDSAR_MODE=hpc."; \
+		exit 1; \
+	fi
 	@echo "Submitting job to queue..."
-	cd "$(LOG_DIR)" && qsub ../"$(MAIN_SCRIPT)"
+	cd "$(LOG_DIR)" && qsub \
+		$(if $(PBS_QUEUE),-q "$(PBS_QUEUE)",) \
+		$(if $(PBS_WALLTIME),-l walltime="$(PBS_WALLTIME)",) \
+		$(if $(PBS_SELECT),-l "$(PBS_SELECT)",) \
+		-v PRODUCT="$(PRODUCT)",WORLDSAR_MODE="$(WORLDSAR_MODE)",RUN_MODE="$(RUN_MODE)",BASE_DIR="$(BASE_DIR)",DATA_DIR="$(DATA_DIR)",PY_SCRIPT_DIR="$(PY_SCRIPT_DIR)",SIF_IMAGE="$(SIF_IMAGE)",OUTPUT_PATH="$(OUTPUT_DIR)",OUTPUT_DIR="$(OUTPUT_DIR)",CUTS_OUTDIR="$(TILES_DIR)",TILES_DIR="$(TILES_DIR)",DB_DIR="$(DB_DIR)",SNAP_USER_DIR="$(SNAP_USER_DIR)",WORKSPACE_PREFIX="$(WORKSPACE_PREFIX)",GRID_PATH="$(GRID_PATH)",GRID_HOST_DIR="",SCRIPT_DIR="$(BASE_DIR)/scripts",GPT_MEMORY="$(GPT_MEMORY)",GPT_PARALLELISM="$(GPT_PARALLELISM)",GPT_TIMEOUT="$(GPT_TIMEOUT)" \
+		../"$(MAIN_SCRIPT)"
 	@echo "Use 'make status' to check job status"
 
 run-vm: ensure-product ensure-sif ensure-snap
@@ -102,8 +197,23 @@ run-vm: ensure-product ensure-sif ensure-snap
 	stderr_log="$(LOG_DIR)/$${run_ts}_$${prod_base}.stderr.log"; \
 	echo "VM stdout log: $$stdout_log"; \
 	echo "VM stderr log: $$stderr_log"; \
-	BASE_DIR="." \
-	SIF_IMAGE="./$(SIF_NAME)" \
+	BASE_DIR="$(BASE_DIR)" \
+	DATA_DIR="$(DATA_DIR)" \
+	PY_SCRIPT_DIR="$(PY_SCRIPT_DIR)" \
+	SIF_IMAGE="$(SIF_IMAGE)" \
+	OUTPUT_PATH="$(OUTPUT_DIR)" \
+	OUTPUT_DIR="$(OUTPUT_DIR)" \
+	CUTS_OUTDIR="$(TILES_DIR)" \
+	DB_DIR="$(DB_DIR)" \
+	SNAP_USER_DIR="$(SNAP_USER_DIR)" \
+	WORKSPACE_PREFIX="$(WORKSPACE_PREFIX)" \
+	GPT_MEMORY="$(GPT_MEMORY)" \
+	GPT_PARALLELISM="$(GPT_PARALLELISM)" \
+	GPT_TIMEOUT="$(GPT_TIMEOUT)" \
+	WORLDSAR_MODE="$(WORLDSAR_MODE)" \
+	RUN_MODE="$(RUN_MODE)" \
+	SIF_NAME="$(SIF_NAME)" \
+	GRID_PATH="$(GRID_PATH)" \
 	bash "./$(MAIN_SCRIPT)" "$(PRODUCT)" \
 	  > >(tee "$$stdout_log") \
 	  2> >(tee "$$stderr_log" >&2)

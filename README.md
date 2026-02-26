@@ -4,14 +4,18 @@ From repository root:
 
 ```bash
 make pull-sif
-make run
+make run-vm PRODUCT=<product_name>
 ```
 
 Optional custom overrides:
 
 ```bash
-make run SIF_IMAGE=./cache/sarpyx.sif MAIN_SCRIPT=main.sh LOG_DIR=./logs PBS_USER=$USER
+WORLDSAR_MODE=hpc make run PRODUCT=<product_name> \
+  WORLDSAR_MODE=hpc SIF_IMAGE=./cache/sarpyx.sif MAIN_SCRIPT=main.sh LOG_DIR=./logs PBS_USER=$USER
 ```
+
+- Local VM mode: `make run-vm PRODUCT=<product_name>` (default mode)
+- Cluster mode: `WORLDSAR_MODE=hpc make run PRODUCT=<product_name>`
 
 ### Manual alternatives
 

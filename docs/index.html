@@ -2,114 +2,36 @@
 <html lang="en">
 <head>
   <meta charset="utf-8">
+  <meta http-equiv="refresh" content="0;url=./intro.html">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WORLDSAR Docs - Overview</title>
-  <meta name="description" content="Didactic documentation for understanding and operating the WORLDSAR repository.">
+  <title>WORLDSAR Documentation</title>
+  <meta name="description" content="WORLDSAR documentation entry page.">
   <link rel="stylesheet" href="./styles.css">
+  <style>
+    body { margin: 0; min-height: 100vh; }
+    .fallback {
+      width: min(720px, calc(100% - 2rem));
+      margin: 2rem auto;
+      padding: 1rem 1.2rem;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: var(--bg-panel);
+      color: var(--text);
+      font-family: "IBM Plex Sans", "Noto Sans", "Segoe UI", sans-serif;
+    }
+    .fallback a {
+      color: var(--link);
+      text-decoration: none;
+    }
+  </style>
 </head>
 <body class="theme-midnight">
-  <div class="page-shell">
-    <header class="hero">
-      <div class="hero-content">
-        <p class="eyebrow">WORLDSAR Documentation</p>
-        <h1>Understand the Repository Before Running It</h1>
-        <p class="lead">
-          This documentation is aligned with the current <code>Makefile</code> and <code>main.sh</code>.
-          Each page teaches one part of the workflow so you can reason about what happens at runtime.
-        </p>
-      </div>
-      <div class="theme-picker">
-        <label for="theme-select">Skin</label>
-        <select id="theme-select" aria-label="Select documentation skin">
-          <option value="theme-midnight">Midnight</option>
-          <option value="theme-carbon">Carbon</option>
-          <option value="theme-slate">Slate</option>
-        </select>
-      </div>
-    </header>
-
-    <nav class="site-nav" aria-label="Documentation pages">
-      <a href="./index.html">Overview</a>
-      <a href="./getting-started.html">1-2. Getting Started</a>
-      <a href="./runtime-assets.html">3. Runtime Assets</a>
-      <a href="./input-and-run.html">4-5. Input and Running</a>
-      <a href="./operations.html">6-7. Operations</a>
-      <a href="./makefile-reference.html">Makefile Reference</a>
-      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
-      <a href="./sar-acquisition-modes-tables.html">SAR Acquisition Tables</a>
-    </nav>
-
-    <main>
-      <section class="panel">
-        <h2>Repository Mental Model</h2>
-        <p>WORLDSAR orchestration is centered around a small set of components. Learn these first:</p>
-        <div class="concept-grid">
-          <article class="concept">
-            <h3>1. Orchestration Layer</h3>
-            <p><code>Makefile</code> gives stable commands. <code>main.sh</code> performs the real run logic called by <code>make run</code> and <code>make run-vm</code>.</p>
-          </article>
-          <article class="concept">
-            <h3>2. Runtime Dependencies</h3>
-            <p><code>sarpyx.sif</code> and <code>.snap</code> are required runtime assets. The Makefile can bootstrap both automatically.</p>
-          </article>
-          <article class="concept">
-            <h3>3. Data Flow</h3>
-            <p>Input products live in <code>./phidown_data</code>. Outputs are generated under <code>./OUT</code> (output, tiles, DB).</p>
-          </article>
-          <article class="concept">
-            <h3>4. Execution Modes</h3>
-            <p>Use <code>run-vm</code> for local execution. Use <code>run</code> for PBS cluster submission with <code>qsub</code>.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Documentation Path</h2>
-        <p>Read in this order for a complete onboarding:</p>
-        <div class="page-cards">
-          <a class="page-card" href="./getting-started.html">
-            <h3>1-2. Getting Started</h3>
-            <p>Prerequisites, environment setup, and first-run checklist.</p>
-          </a>
-          <a class="page-card" href="./runtime-assets.html">
-            <h3>3. Runtime Assets</h3>
-            <p>SIF container, SNAP userdir, and DEM behavior explained.</p>
-          </a>
-          <a class="page-card" href="./input-and-run.html">
-            <h3>4-5. Input and Running</h3>
-            <p>How PRODUCT is resolved and how to run locally or on cluster.</p>
-          </a>
-          <a class="page-card" href="./operations.html">
-            <h3>6-7. Operations</h3>
-            <p>Monitoring, logs, and cleanup targets for operational hygiene.</p>
-          </a>
-          <a class="page-card" href="./makefile-reference.html">
-            <h3>Makefile Reference</h3>
-            <p>Complete target-by-target command reference from the current Makefile.</p>
-          </a>
-        </div>
-      </section>
-
-      <section class="panel">
-        <h2>Quick Start (Relative Paths Only)</h2>
-        <ol>
-          <li>Enter the repository root directory.</li>
-          <li>Prepare runtime assets (<code>sarpyx.sif</code>, <code>.snap</code>).</li>
-          <li>Place or download a <code>.SAFE</code> product.</li>
-          <li>Run with local VM mode first.</li>
-          <li>Use monitoring and cleanup commands as needed.</li>
-        </ol>
-        <div class="code-block">
-          <button class="copy-btn" type="button">Copy</button>
-          <pre><code>cd WORLDSAR
-make pull-sif
-make pull-snap
-make down PRODUCT=&lt;product_name&gt;.SAFE
-make run-vm PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
-        </div>
-      </section>
-    </main>
+  <div class="fallback">
+    <p>Redirecting to the intro page...</p>
+    <p>If redirection does not run, open <a href="./intro.html">intro.html</a>.</p>
   </div>
-  <script src="./app.js"></script>
+  <script>
+    window.location.href = "./intro.html";
+  </script>
 </body>
 </html>

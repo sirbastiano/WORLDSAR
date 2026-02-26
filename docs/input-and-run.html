@@ -11,6 +11,9 @@
   <div class="page-shell">
     <header class="hero">
       <div class="hero-content">
+        <div class="brand-row">
+          <img src="./assets/ESAΦ-lab_WT.png" alt="ESA PhiLab logo" class="philab-logo">
+        </div>
         <p class="eyebrow">WORLDSAR Documentation</p>
         <h1>4-5. Input Product and Running</h1>
         <p class="lead">Learn how PRODUCT is interpreted and choose the right execution mode.</p>
@@ -54,6 +57,7 @@
 
       <section class="panel">
         <h2>5. Running</h2>
+        <p><strong>Default mode:</strong> <code>WORLDSAR_MODE=vm</code>.</p>
         <h3>5.1 Local VM Run (No PBS)</h3>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
@@ -68,8 +72,11 @@
         <h3>5.2 Cluster Run (PBS/qsub)</h3>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
-          <pre><code>make run PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+          <pre><code>WORLDSAR_MODE=hpc make run PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
         </div>
+        <p>Equivalent behavior is achieved by setting <code>WORLDSAR_MODE=hpc</code> so the Makefile uses HPC defaults for paths and scheduler options.</p>
+        <p>For your workflow, HPC hardcoded defaults are also defined near the top of <code>main.sh</code> (for example <code>HPC_BASE_DIR</code> and related paths).</p>
+        <p>Set Makefile mode defaults in <code>Makefile</code> (top section): <code>WORLDSAR_MODE</code>, <code>VM_PROJECT_ROOT</code>, <code>HPC_PROJECT_ROOT</code>; use command-line overrides for one-off runs.</p>
       </section>
 
       <section class="panel">

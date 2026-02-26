@@ -85,6 +85,10 @@ code {
   margin: 1rem auto 2rem auto;
 }
 
+.sar-acquisition-page .page-shell {
+  width: min(1320px, calc(100% - 2.5rem));
+}
+
 .hero {
   display: flex;
   justify-content: space-between;
@@ -99,6 +103,21 @@ code {
 .hero-content h1 {
   margin: 0.2rem 0 0.6rem 0;
   line-height: 1.2;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.6rem;
+}
+
+.philab-logo {
+  width: min(380px, 100%);
+  height: auto;
+  display: block;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 24px var(--shadow);
 }
 
 .eyebrow {
@@ -122,6 +141,75 @@ code {
   gap: 0.45rem;
   align-items: flex-start;
   min-width: 160px;
+}
+
+.doc-search-wrap {
+  margin-top: 0.45rem;
+  color: var(--text-soft);
+  font-size: 0.8rem;
+  width: 100%;
+}
+
+.doc-search-wrap,
+.doc-search-wrap input {
+  display: block;
+}
+
+.doc-search-wrap input.doc-search-input {
+  margin-top: 0.35rem;
+  width: 100%;
+  min-width: 190px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--bg-soft);
+  color: var(--text);
+  padding: 0.42rem 0.6rem;
+}
+
+.doc-search-results {
+  margin-top: 0.45rem;
+  width: max(260px, 100%);
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--bg-soft);
+  padding: 0.35rem;
+  display: grid;
+  gap: 0.35rem;
+  max-height: 260px;
+  overflow-y: auto;
+  box-shadow: 0 12px 24px var(--shadow);
+}
+
+.doc-search-result,
+.doc-search-empty {
+  text-align: left;
+  border: 1px solid color-mix(in srgb, var(--border) 84%, black 16%);
+  background: color-mix(in srgb, var(--bg-panel) 82%, var(--bg-soft) 18%);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+}
+
+.doc-search-result {
+  width: 100%;
+  cursor: pointer;
+}
+
+.doc-search-result:hover,
+.doc-search-result:focus {
+  border-color: color-mix(in srgb, var(--link) 60%, var(--border) 40%);
+  color: var(--link-active);
+}
+
+.doc-search-result span,
+.doc-search-empty {
+  display: block;
+}
+
+.doc-search-result small {
+  display: block;
+  margin-top: 0.2rem;
+  color: var(--text-soft);
+  font-size: 0.72rem;
 }
 
 .theme-picker label {
@@ -191,6 +279,10 @@ main {
   margin-bottom: 0.45rem;
 }
 
+.sar-acquisition-page .panel {
+  padding: 1.25rem 1.35rem;
+}
+
 .panel p,
 .panel li {
   color: var(--text-soft);
@@ -224,6 +316,29 @@ main {
   gap: 0.8rem;
 }
 
+.intro-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+}
+
+.intro-btn {
+  text-decoration: none;
+  color: var(--text);
+  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--bg-soft) 86%, var(--bg-accent) 14%);
+  border-radius: 12px;
+  padding: 0.65rem 0.95rem;
+  font-weight: 600;
+  transition: all 120ms ease;
+}
+
+.intro-btn:hover {
+  color: var(--link-active);
+  border-color: color-mix(in srgb, var(--link) 65%, var(--border) 35%);
+  background: color-mix(in srgb, var(--bg-soft) 65%, var(--bg-accent) 35%);
+}
+
 .page-card {
   display: block;
   border: 1px solid var(--border);
@@ -243,9 +358,89 @@ main {
   color: var(--text-soft);
 }
 
+.workflow-diagram {
+  margin-top: 0.8rem;
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) 34px minmax(140px, 1fr) 34px minmax(140px, 1fr) 34px minmax(140px, 1fr) 34px minmax(140px, 1fr);
+  gap: 0.5rem;
+  align-items: stretch;
+}
+
+.wf-step {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.72rem 0.76rem;
+  background: linear-gradient(140deg, color-mix(in srgb, var(--bg-soft) 86%, white 14%), color-mix(in srgb, var(--bg-soft) 93%, black 7%));
+  box-shadow: 0 8px 20px var(--shadow);
+}
+
+.wf-step h3 {
+  margin: 0;
+  font-size: 0.94rem;
+  color: var(--text);
+}
+
+.wf-step p {
+  margin: 0.34rem 0 0 0;
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.wf-arrow {
+  display: grid;
+  place-items: center;
+  color: var(--link-active);
+  font-weight: 700;
+  font-size: 1rem;
+  opacity: 0.95;
+}
+
 .code-block {
   position: relative;
   margin: 0.6rem 0 0.85rem 0;
+}
+
+.site-dynamic-meta {
+  margin-top: 0.6rem;
+  color: var(--text-soft);
+  font-size: 0.78rem;
+}
+
+.scroll-progress {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 3px;
+  background: color-mix(in srgb, var(--bg-soft) 70%, transparent 30%);
+  z-index: 9999;
+}
+
+.scroll-progress span {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--link), var(--link-active));
+}
+
+.back-to-top {
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-soft) 84%, var(--bg-panel) 16%);
+  color: var(--text);
+  padding: 0.52rem 0.72rem;
+  font-size: 0.85rem;
+  z-index: 9999;
+  box-shadow: 0 10px 24px var(--shadow);
+  cursor: pointer;
+}
+
+.back-to-top:hover {
+  color: var(--link-active);
+  border-color: color-mix(in srgb, var(--link) 60%, var(--border) 40%);
 }
 
 .copy-btn {
@@ -285,6 +480,22 @@ pre {
   overflow-x: auto;
 }
 
+.sar-acquisition-page .table-wrap {
+  margin: 0.55rem 0 1rem 0;
+}
+
+.sar-acquisition-page table {
+  table-layout: fixed;
+  min-width: 0;
+}
+
+.sar-acquisition-page th,
+.sar-acquisition-page td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 table {
   width: 100%;
   border-collapse: collapse;
@@ -312,11 +523,27 @@ td {
   .page-cards {
     grid-template-columns: 1fr;
   }
+
+  .intro-buttons {
+    flex-direction: column;
+  }
+
+  .workflow-diagram {
+    grid-template-columns: 1fr;
+  }
+
+  .wf-arrow {
+    min-height: 22px;
+  }
 }
 
 @media (max-width: 720px) {
   .page-shell {
     width: calc(100% - 1rem);
+  }
+
+  .sar-acquisition-page .page-shell {
+    width: calc(100% - 0.8rem);
   }
 
   .hero {

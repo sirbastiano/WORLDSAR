@@ -11,6 +11,9 @@
   <div class="page-shell">
     <header class="hero">
       <div class="hero-content">
+        <div class="brand-row">
+          <img src="./assets/ESAΦ-lab_WT.png" alt="ESA PhiLab logo" class="philab-logo">
+        </div>
         <p class="eyebrow">WORLDSAR Documentation</p>
         <h1>Makefile Command Reference</h1>
         <p class="lead">All targets listed here are derived from the current repository Makefile.</p>
@@ -38,6 +41,25 @@
 
     <main>
       <section class="panel">
+        <h2>Configuration Mode</h2>
+        <p>Set execution behavior by exporting/shell-assigning variables at Makefile invocation time. Defaults are defined at the top of <code>Makefile</code>.</p>
+        <p><strong>Mode selection:</strong></p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>WORLDSAR_MODE=vm   make run-vm PRODUCT=&lt;product_name&gt;.SAFE
+WORLDSAR_MODE=hpc  make run PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+        </div>
+        <p>Useful Makefile-level defaults near the top:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>WORLDSAR_MODE ?= vm
+VM_PROJECT_ROOT ?= .
+HPC_PROJECT_ROOT ?= /lustre/projects/1001/rdelprete/WORLDSAR</code></pre>
+        </div>
+        <p>You can override any default on the command line, for example <code>HPC_PBS_SELECT</code>, <code>SIF_IMAGE</code>, or <code>HPC_OUTPUT_DIR</code>.</p>
+      </section>
+
+      <section class="panel">
         <h2>Targets</h2>
         <div class="table-wrap">
           <table>
@@ -54,7 +76,7 @@
               <tr><td><code>ensure-sif</code></td><td>Ensure SIF image exists.</td><td>Calls <code>pull-sif</code> if missing.</td></tr>
               <tr><td><code>ensure-snap</code></td><td>Ensure <code>.snap</code> userdir exists.</td><td>Calls <code>pull-snap</code> if missing.</td></tr>
               <tr><td><code>ensure-product</code></td><td>Validate that product input was provided.</td><td>Used by run targets.</td></tr>
-              <tr><td><code>run</code></td><td>Submit job to PBS via <code>qsub</code>.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+              <tr><td><code>run</code></td><td>Submit job to PBS via <code>qsub</code>.</td><td>Requires <code>PRODUCT=...</code>. Use with <code>WORLDSAR_MODE=hpc</code> for cluster mode.</td></tr>
               <tr><td><code>run-vm</code></td><td>Run locally without PBS.</td><td>Writes timestamped stdout/stderr logs.</td></tr>
               <tr><td><code>status</code></td><td>Show current job status.</td><td>Uses <code>qstat -u $(PBS_USER)</code>.</td></tr>
               <tr><td><code>logs</code></td><td>Show recent log files.</td><td>Shows latest stdout/stderr and scheduler logs.</td></tr>

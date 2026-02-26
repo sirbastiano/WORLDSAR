@@ -6,45 +6,100 @@
 
 set -euo pipefail
 
-# ---- Paths (override if needed) ----
-# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-# BASE_DIR="${BASE_DIR:-$(cd "${SCRIPT_DIR}/." && pwd -P)}"
-# DATA_DIR="${DATA_DIR:-${BASE_DIR}/phidown_data}"
-# PY_SCRIPT_DIR="${PY_SCRIPT_DIR:-${BASE_DIR}/pyscripts}"
-# SIF_IMAGE="${SIF_IMAGE:-${BASE_DIR}/sarpyx.sif}"
-# # Product selection: first positional arg, then PRODUCT env var.
-# PRODUCT_NAME="${1:-${PRODUCT:-}}"
-# if [[ -z "${PRODUCT_NAME}" ]]; then
-#   echo "ERROR: Product name is required." >&2
-#   echo "Usage: ${0##*/} <product_name>" >&2
-#   echo "Or set PRODUCT=<product_name>" >&2
-#   exit 2
-# fi
-# PRODUCT_NAME="$(basename "${PRODUCT_NAME}")"
-# PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
+# ---- Runtime mode defaults (edit here for your preferred defaults) ----
+# Set this to "vm" for local default, or "hpc" for cluster default.
+WORLDSAR_MODE_DEFAULT="${WORLDSAR_MODE_DEFAULT:-vm}"
+WORLDSAR_MODE_HPC="${WORLDSAR_MODE_HPC:-hpc}"
+WORLDSAR_MODE_VM="${WORLDSAR_MODE_VM:-vm}"
 
-# =========================== HARDCODED PATHS ===========================
-# SPACEHPC PATHS (ovverride):
-BASE_DIR="/lustre/projects/1001/rdelprete/WORLDSAR"
-SCRIPT_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/scripts"
-DATA_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/phidown_data"
-PY_SCRIPT_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/pyscripts"
-SIF_IMAGE="/lustre/projects/1001/rdelprete/WORLDSAR/sarpyx.sif"
-PRODUCT_NAME="S1A_S3_SLC__1SDV_20160820T171616_20160820T171644_012687_013EFB_B6D5.SAFE"
-PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
-# =========================== COMMENT OUT/ADJUST BELOW AS NEEDED ===========================
+# ---- Runtime mode ----
+WORLDSAR_MODE="${WORLDSAR_MODE:-${RUN_MODE:-${WORLDSAR_MODE_DEFAULT}}}"
+RUN_MODE="${WORLDSAR_MODE}"
 
+# ---- Paths (override via Makefile/env; hpc mode keeps repo-specific hardcoded defaults) ----
+SCRIPT_DIR="${SCRIPT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)}"
 
+# ---- HPC hardcoded defaults ----
+HPC_BASE_DIR="${HPC_BASE_DIR:-/lustre/projects/1001/rdelprete/WORLDSAR}"
+HPC_WORKSPACE_PREFIX="${HPC_WORKSPACE_PREFIX:-/work}"
+HPC_DATA_DIR="${HPC_BASE_DIR}/phidown_data"
+HPC_PY_SCRIPT_DIR="${HPC_BASE_DIR}/pyscripts"
+HPC_SIF_IMAGE="${HPC_BASE_DIR}/sarpyx.sif"
+HPC_SNAP_USER_DIR="${HPC_BASE_DIR}/.snap"
+HPC_OUTPUT_DIR="${HPC_BASE_DIR}/OUT/worldsar_output"
+HPC_TILES_DIR="${HPC_BASE_DIR}/OUT/tiles"
+HPC_DB_DIR="${HPC_BASE_DIR}/OUT/DB"
+HPC_GRID_PATH="${HPC_WORKSPACE_PREFIX}/grid/grid_10km.geojson"
 
-OUTPUT_PATH="${OUTPUT_PATH:-${BASE_DIR}/OUT/worldsar_output}"
-CUTS_OUTDIR="${CUTS_OUTDIR:-${BASE_DIR}/OUT/tiles}"
-DB_DIR="${DB_DIR:-${BASE_DIR}/OUT/DB}"
-SNAP_USER_DIR="${SNAP_USER_DIR:-${BASE_DIR}/.snap}"
+# ---- VM defaults (relative/portable) ----
+VM_BASE_DIR="${VM_BASE_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd -P)}"
+VM_WORKSPACE_PREFIX="${VM_WORKSPACE_PREFIX:-/work}"
+VM_DATA_DIR="${VM_BASE_DIR}/phidown_data"
+VM_PY_SCRIPT_DIR="${VM_BASE_DIR}/pyscripts"
+VM_SIF_IMAGE="${VM_BASE_DIR}/sarpyx.sif"
+VM_SNAP_USER_DIR="${VM_BASE_DIR}/.snap"
+VM_OUTPUT_DIR="${VM_BASE_DIR}/OUT/worldsar_output"
+VM_TILES_DIR="${VM_BASE_DIR}/OUT/tiles"
+VM_DB_DIR="${VM_BASE_DIR}/OUT/DB"
+VM_GRID_PATH="${VM_WORKSPACE_PREFIX}/grid/grid_10km.geojson"
+
+if [[ "${WORLDSAR_MODE}" == "${WORLDSAR_MODE_HPC}" ]]; then
+  BASE_DIR="${BASE_DIR:-${HPC_BASE_DIR}}"
+  DATA_DIR="${DATA_DIR:-${HPC_DATA_DIR}}"
+  PY_SCRIPT_DIR="${PY_SCRIPT_DIR:-${HPC_PY_SCRIPT_DIR}}"
+  SIF_IMAGE="${SIF_IMAGE:-${HPC_SIF_IMAGE}}"
+  SNAP_USER_DIR="${SNAP_USER_DIR:-${HPC_SNAP_USER_DIR}}"
+  OUTPUT_PATH="${OUTPUT_PATH:-${HPC_OUTPUT_DIR}}"
+  CUTS_OUTDIR="${CUTS_OUTDIR:-${HPC_TILES_DIR}}"
+  DB_DIR="${DB_DIR:-${HPC_DB_DIR}}"
+  WORKSPACE_PREFIX="${WORKSPACE_PREFIX:-${HPC_WORKSPACE_PREFIX}}"
+  GRID_PATH="${GRID_PATH:-${HPC_GRID_PATH}}"
+  GPT_PARALLELISM="${GPT_PARALLELISM:-164}"
+elif [[ "${WORLDSAR_MODE}" == "${WORLDSAR_MODE_VM}" ]]; then
+  BASE_DIR="${BASE_DIR:-${VM_BASE_DIR}}"
+  DATA_DIR="${DATA_DIR:-${VM_DATA_DIR}}"
+  PY_SCRIPT_DIR="${PY_SCRIPT_DIR:-${VM_PY_SCRIPT_DIR}}"
+  SIF_IMAGE="${SIF_IMAGE:-${VM_SIF_IMAGE}}"
+  SNAP_USER_DIR="${SNAP_USER_DIR:-${VM_SNAP_USER_DIR}}"
+  OUTPUT_PATH="${OUTPUT_PATH:-${VM_OUTPUT_DIR}}"
+  CUTS_OUTDIR="${CUTS_OUTDIR:-${VM_TILES_DIR}}"
+  DB_DIR="${DB_DIR:-${VM_DB_DIR}}"
+  WORKSPACE_PREFIX="${WORKSPACE_PREFIX:-${VM_WORKSPACE_PREFIX}}"
+  GRID_PATH="${GRID_PATH:-${VM_GRID_PATH}}"
+  GPT_PARALLELISM="${GPT_PARALLELISM:-16}"
+else
+  echo "ERROR: unknown WORLDSAR_MODE='${WORLDSAR_MODE}'." >&2
+  echo "Set WORLDSAR_MODE to either '${WORLDSAR_MODE_VM}' or '${WORLDSAR_MODE_HPC}'." >&2
+  exit 2
+fi
+
+# ---- Product ----
+# Input resolution order: positional arg -> PRODUCT -> WORLDSAR_PRODUCT
+PRODUCT_NAME="${1:-${PRODUCT:-${WORLDSAR_PRODUCT:-}}}"
+if [[ -z "${PRODUCT_NAME}" ]]; then
+  echo "ERROR: Product name is required." >&2
+  echo "Usage: ${0##*/} <product_name>" >&2
+  echo "Or set PRODUCT=<product_name>" >&2
+  exit 2
+fi
+
+if [[ -d "${PRODUCT_NAME}" ]]; then
+  PROD_PATH="${PRODUCT_NAME}"
+else
+  PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
+fi
+
+if [[ ! -d "${PROD_PATH}" ]]; then
+  echo "ERROR: Product directory not found: ${PROD_PATH}" >&2
+  echo "Set PRODUCT to a SAFE directory name under ${DATA_DIR}, or pass an existing directory path." >&2
+  exit 2
+fi
+
+PRODUCT_NAME="$(basename "${PROD_PATH}")"
+
 # ---- Parameters ----
 GPT_MEMORY="${GPT_MEMORY:-64G}"
-GPT_PARALLELISM="${GPT_PARALLELISM:-164}"
 GPT_TIMEOUT="${GPT_TIMEOUT:-3600}"
-WORKSPACE_PREFIX="${WORKSPACE_PREFIX:-/work}"
 # SNAP userdir stores cache/config; GPT binary location is independent.
 GPT_PATH="${GPT_PATH:-gpt}"
 GRID_PATH="${GRID_PATH:-${WORKSPACE_PREFIX}/grid/grid_10km.geojson}"
@@ -53,8 +108,8 @@ GRID_HOST_DIR="${GRID_HOST_DIR:-}"
 # ---- Basic validation ----
 [[ -d "${DATA_DIR}" ]]     || { echo "ERROR: DATA_DIR not found: ${DATA_DIR}" >&2; exit 2; }
 [[ -d "${PY_SCRIPT_DIR}" ]] || { echo "ERROR: PY_SCRIPT_DIR not found: ${PY_SCRIPT_DIR}" >&2; exit 2; }
-[[ -f "${SIF_IMAGE}" ]]  || { echo "ERROR: SIF_IMAGE not found: ${SIF_IMAGE}" >&2; exit 2; }
-[[ -d "${PROD_PATH}" ]]  || { echo "ERROR: PROD_PATH not found (SAFE dir): ${PROD_PATH}" >&2; exit 2; }
+[[ -f "${SIF_IMAGE}" ]]    || { echo "ERROR: SIF_IMAGE not found: ${SIF_IMAGE}" >&2; exit 2; }
+[[ -d "${PROD_PATH}" ]]    || { echo "ERROR: PROD_PATH not found (SAFE dir): ${PROD_PATH}" >&2; exit 2; }
 [[ -d "${SNAP_USER_DIR}" ]] || { echo "ERROR: SNAP_USER_DIR not found: ${SNAP_USER_DIR}" >&2; exit 2; }
 
 FALLBACK_OUTPUT_ROOT="${BASE_DIR}/outputs"
@@ -118,6 +173,8 @@ if ! "${CONTAINER_RUNTIME}" exec "${SIF_IMAGE}" bash -lc "[ -x \"${GPT_PATH}\" ]
   fi
 fi
 
+echo "WORLDSAR_MODE=${WORLDSAR_MODE}"
+echo "RUN_MODE=${RUN_MODE}"
 echo "BASE_DIR=${BASE_DIR}"
 echo "DATA_DIR=${DATA_DIR}"
 echo "SCRIPT_DIR=${SCRIPT_DIR}"
@@ -132,7 +189,6 @@ echo "GRID_PATH=${GRID_PATH}"
 echo "CONTAINER_RUNTIME=${CONTAINER_RUNTIME}"
 
 # ---- Run ----
-# apptainer run --writable-tmpfs \
 "${CONTAINER_RUNTIME}" run \
   -B "${PY_SCRIPT_DIR}:${WORKSPACE_PREFIX}/scripts" \
   -B "${DATA_DIR}:${WORKSPACE_PREFIX}/data" \
@@ -151,4 +207,4 @@ echo "CONTAINER_RUNTIME=${CONTAINER_RUNTIME}"
     --db-dir "${WORKSPACE_PREFIX}/db" \
     --gpt-memory "${GPT_MEMORY}" \
     --gpt-parallelism "${GPT_PARALLELISM}" \
-    --gpt-timeout "${GPT_TIMEOUT}" 
+    --gpt-timeout "${GPT_TIMEOUT}"
