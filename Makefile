@@ -1,4 +1,4 @@
-.PHONY: help clean clean-logs ensure-sif ensure-snap ensure-product run status logs pull-sif pull-sif-generic pull-snap clean-snap-artifacts list-data down downloader uploader show-cache clean-hf-cache
+.PHONY: help clean clean-logs ensure-sif ensure-snap ensure-product ensure-runtime ensure-qsub run run-vm run-hpc status logs pull-sif pull-sif-generic pull-snap clean-snap-artifacts list-data down downloader uploader show-cache clean-hf-cache
 
 SHELL := /usr/bin/env bash
 
@@ -164,6 +164,15 @@ ensure-product:
 		exit 1; \
 	fi
 
+ensure-runtime: ensure-product ensure-sif ensure-snap
+
+ensure-qsub:
+	@command -v qsub >/dev/null 2>&1 || { \
+		echo "ERROR: qsub is not available in this environment."; \
+		echo "Set WORLDSAR_MODE=vm or load scheduler environment."; \
+		exit 1; \
+	}
+
 clean:
 	@echo "Cleaning output directory..."
 	rm -rf "$(OUTPUT_DIR)" "$(TILES_DIR)" "$(DB_DIR)"
@@ -172,55 +181,71 @@ clean-logs:
 	@echo "Cleaning log files..."
 	rm -rf "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log
 
-run: ensure-product ensure-sif ensure-snap
+run: ensure-runtime
 	@if [ "$(WORLDSAR_MODE)" = "hpc" ]; then \
-		echo "Submitting HPC job via qsub..."; \
-		mkdir -p "$(LOG_DIR)"; \
-		cd "$(LOG_DIR)" && qsub \
-			$(if $(PBS_QUEUE),-q "$(PBS_QUEUE)",) \
-			$(if $(PBS_WALLTIME),-l walltime="$(PBS_WALLTIME)",) \
-			$(if $(PBS_SELECT),-l "$(PBS_SELECT)",) \
-			-v PRODUCT="$(PRODUCT)",WORLDSAR_MODE="$(WORLDSAR_MODE)",RUN_MODE="$(RUN_MODE)",BASE_DIR="$(BASE_DIR)",DATA_DIR="$(DATA_DIR)",PY_SCRIPT_DIR="$(PY_SCRIPT_DIR)",SIF_IMAGE="$(SIF_IMAGE)",OUTPUT_PATH="$(OUTPUT_DIR)",OUTPUT_DIR="$(OUTPUT_DIR)",CUTS_OUTDIR="$(TILES_DIR)",TILES_DIR="$(TILES_DIR)",DB_DIR="$(DB_DIR)",SNAP_USER_DIR="$(SNAP_USER_DIR)",WORKSPACE_PREFIX="$(WORKSPACE_PREFIX)",GRID_PATH="$(GRID_PATH)",GRID_HOST_DIR="",SCRIPT_DIR="$(BASE_DIR)/scripts",GPT_MEMORY="$(GPT_MEMORY)",GPT_PARALLELISM="$(GPT_PARALLELISM)",GPT_TIMEOUT="$(GPT_TIMEOUT)" \
-			../"$(MAIN_SCRIPT)"; \
-		echo "Use 'make status' to check job status"; \
+		$(MAKE) run-hpc; \
 	else \
-		echo "Running locally in VM mode (no qsub)..."; \
-		mkdir -p "$(LOG_DIR)"; \
-		run_ts="$$(date $(RUN_TS_FMT))"; \
-		prod_base="$$(basename "$(PRODUCT)")"; \
-		stdout_log="$(LOG_DIR)/$${run_ts}_$${prod_base}.stdout.log"; \
-		stderr_log="$(LOG_DIR)/$${run_ts}_$${prod_base}.stderr.log"; \
-		echo "VM stdout log: $$stdout_log"; \
-		echo "VM stderr log: $$stderr_log"; \
-		BASE_DIR="$(BASE_DIR)" \
-		DATA_DIR="$(DATA_DIR)" \
-		PY_SCRIPT_DIR="$(PY_SCRIPT_DIR)" \
-		SIF_IMAGE="$(SIF_IMAGE)" \
-		OUTPUT_PATH="$(OUTPUT_DIR)" \
-		OUTPUT_DIR="$(OUTPUT_DIR)" \
-		CUTS_OUTDIR="$(TILES_DIR)" \
-		DB_DIR="$(DB_DIR)" \
-		SNAP_USER_DIR="$(SNAP_USER_DIR)" \
-		WORKSPACE_PREFIX="$(WORKSPACE_PREFIX)" \
-		GPT_MEMORY="$(GPT_MEMORY)" \
-		GPT_PARALLELISM="$(GPT_PARALLELISM)" \
-		GPT_TIMEOUT="$(GPT_TIMEOUT)" \
-		WORLDSAR_MODE="$(WORLDSAR_MODE)" \
-		RUN_MODE="$(RUN_MODE)" \
-		SIF_NAME="$(SIF_NAME)" \
-		GRID_PATH="$(GRID_PATH)" \
-		PRODUCT="$(PRODUCT)" \
-		bash "./$(MAIN_SCRIPT)" \
-		  > >(tee "$$stdout_log") \
-		  2> >(tee "$$stderr_log" >&2); \
+		$(MAKE) run-vm; \
 	fi
 
+run-hpc: ensure-runtime ensure-qsub
+	@echo "Submitting HPC job via qsub..."
+	@mkdir -p "$(LOG_DIR)"
+	@cd "$(LOG_DIR)" && qsub \
+		$(if $(PBS_QUEUE),-q "$(PBS_QUEUE)",) \
+		$(if $(PBS_WALLTIME),-l walltime="$(PBS_WALLTIME)",) \
+		$(if $(PBS_SELECT),-l "$(PBS_SELECT)",) \
+		-v PRODUCT="$(PRODUCT)",WORLDSAR_MODE="$(WORLDSAR_MODE)",RUN_MODE="$(RUN_MODE)",BASE_DIR="$(BASE_DIR)",DATA_DIR="$(DATA_DIR)",PY_SCRIPT_DIR="$(PY_SCRIPT_DIR)",SIF_IMAGE="$(SIF_IMAGE)",OUTPUT_PATH="$(OUTPUT_DIR)",OUTPUT_DIR="$(OUTPUT_DIR)",CUTS_OUTDIR="$(TILES_DIR)",TILES_DIR="$(TILES_DIR)",DB_DIR="$(DB_DIR)",SNAP_USER_DIR="$(SNAP_USER_DIR)",WORKSPACE_PREFIX="$(WORKSPACE_PREFIX)",GRID_PATH="$(GRID_PATH)",GRID_HOST_DIR="",SCRIPT_DIR="$(BASE_DIR)/scripts",GPT_MEMORY="$(GPT_MEMORY)",GPT_PARALLELISM="$(GPT_PARALLELISM)",GPT_TIMEOUT="$(GPT_TIMEOUT)" \
+		../"$(MAIN_SCRIPT)"
+	@echo "Use 'make status' to check job status"
+
+run-vm: ensure-runtime
+	@echo "Running locally in VM mode (no qsub)..."
+	@mkdir -p "$(LOG_DIR)"
+	@run_ts="$$(date $(RUN_TS_FMT))"; \
+	prod_base="$$(basename "$(PRODUCT)")"; \
+	stdout_log="$(LOG_DIR)/$${run_ts}_$${prod_base}.stdout.log"; \
+	stderr_log="$(LOG_DIR)/$${run_ts}_$${prod_base}.stderr.log"; \
+	echo "VM stdout log: $$stdout_log"; \
+	echo "VM stderr log: $$stderr_log"; \
+	BASE_DIR="$(BASE_DIR)" \
+	DATA_DIR="$(DATA_DIR)" \
+	PY_SCRIPT_DIR="$(PY_SCRIPT_DIR)" \
+	SIF_IMAGE="$(SIF_IMAGE)" \
+	OUTPUT_PATH="$(OUTPUT_DIR)" \
+	OUTPUT_DIR="$(OUTPUT_DIR)" \
+	CUTS_OUTDIR="$(TILES_DIR)" \
+	DB_DIR="$(DB_DIR)" \
+	SNAP_USER_DIR="$(SNAP_USER_DIR)" \
+	WORKSPACE_PREFIX="$(WORKSPACE_PREFIX)" \
+	GPT_MEMORY="$(GPT_MEMORY)" \
+	GPT_PARALLELISM="$(GPT_PARALLELISM)" \
+	GPT_TIMEOUT="$(GPT_TIMEOUT)" \
+	WORLDSAR_MODE="$(WORLDSAR_MODE)" \
+	RUN_MODE="$(RUN_MODE)" \
+	SIF_NAME="$(SIF_NAME)" \
+	GRID_PATH="$(GRID_PATH)" \
+	PRODUCT="$(PRODUCT)" \
+	bash "./$(MAIN_SCRIPT)" \
+	  > >(tee "$$stdout_log") \
+	  2> >(tee "$$stderr_log" >&2)
+
 status:
-	@qstat -u "$(PBS_USER)"
+	@if [ "$(WORLDSAR_MODE)" = "hpc" ]; then \
+		qstat -u "$(PBS_USER)"; \
+	else \
+		echo "INFO: status checks PBS jobs only; you selected VM mode."; \
+		echo "For local runs, inspect logs in $(LOG_DIR) and process exit codes."; \
+	fi
 
 logs:
-	@echo "Recent log files:"
-	@ls -lht "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* 2>/dev/null | head -10 || echo "No log files found"
+	@if [ "$(WORLDSAR_MODE)" = "hpc" ]; then \
+		echo "Recent scheduler logs/logs:"; \
+		ls -lht "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* 2>/dev/null | head -10 || echo "No log files found"; \
+	else \
+		echo "Recent local run logs:"; \
+		ls -lht "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log 2>/dev/null | head -10 || echo "No local log files found"; \
+	fi
 
 # --- Hugging Face / SIF pull with scratch cache ---
 pull-sif:
