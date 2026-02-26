@@ -99,14 +99,14 @@ def pipeline_sentinel(
     """
     # for fast checks subset operation
     fp_subset = op.subset(geo_region="POLYGON ((5.969696 51.118179, 6.256714 51.118179, 6.256714 51.270508, 5.969696 51.270508, 5.969696 51.118179))")
+    """
     op.do_subaps(
         safe_path=product_path,
-        dim_path=fp_subset,
-        n_decompositions=[2],
+        dim_path=op.prod_path,
+        n_decompositions=[3],
         byte_order=1,
         VERBOSE=False,
     )
-    """
     op.polarimetric_decomposition(decomposition="H-Alpha Dual Pol Decomposition", window_size=5)
     op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=10.0)
     return op.prod_path
