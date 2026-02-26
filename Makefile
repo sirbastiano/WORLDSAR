@@ -39,7 +39,7 @@ export HF_HUB_DISABLE_XET
 # Default target
 help:
 	@echo "WORLDSAR Makefile Commands:"
-	@echo "  make run PRODUCT=<name> [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Submit job to queue"
+	@echo "  make run [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Submit job to queue"
 	@echo "  make run-vm PRODUCT=<name> [SIF_IMAGE=./sarpyx.sif] [MAIN_SCRIPT=main.sh] - Run locally (no qsub)"
 	@echo "  make down PRODUCT=<name> - Download SAR product into \$(PHIDOWN_DATA_DIR)"
 	@echo "  make status       - Check current job status"
@@ -88,10 +88,9 @@ clean-logs:
 	@echo "Cleaning log files..."
 	rm -rf "$(LOG_DIR)"/*.o* "$(LOG_DIR)"/*.e* "$(LOG_DIR)"/*.stdout.log "$(LOG_DIR)"/*.stderr.log
 
-run: ensure-product ensure-sif ensure-snap
+run: ensure-sif ensure-snap
 	@echo "Submitting job to queue..."
-	mkdir -p "$(LOG_DIR)"
-	cd "$(LOG_DIR)" && qsub ../"$(MAIN_SCRIPT)" "$(PRODUCT)"
+	cd "$(LOG_DIR)" && qsub ../"$(MAIN_SCRIPT)"
 	@echo "Use 'make status' to check job status"
 
 run-vm: ensure-product ensure-sif ensure-snap

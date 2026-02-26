@@ -4,7 +4,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="${PROJECT_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd -P)}"
 PHIDOWN_DATA_DIR="${PHIDOWN_DATA_DIR:-${PROJECT_DIR}/phidown_data}"
-PHIDOWN_CFG="${PHIDOWN_CFG:-${PROJECT_DIR}/.s5cfg}"
+PHIDOWN_CFG="${PHIDOWN_CFG:-${SCRIPT_DIR}/.s5cfg}"
 
 source "${PROJECT_DIR}/.venv/bin/activate"
 
