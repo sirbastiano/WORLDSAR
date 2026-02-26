@@ -108,12 +108,20 @@ HPC_PROJECT_ROOT ?= /lustre/projects/1001/rdelprete/WORLDSAR</code></pre>
       <section class="panel">
         <h2>Makefile Execution Flow</h2>
         <p>This diagram summarizes how <code>make run</code> validates runtime requirements and branches into VM or HPC execution.</p>
-        <figure class="diagram-figure">
-          <img
-            src="./assets/makefile-flow.svg"
-            alt="WORLDSAR Makefile flow diagram showing ensure-runtime checks and VM or HPC execution branches."
-            class="diagram-image"
-          >
+        <figure class="diagram-figure zoom-box" data-zoom-min="1" data-zoom-max="4" data-zoom-step="0.25">
+          <div class="zoom-toolbar" role="group" aria-label="Diagram zoom controls">
+            <button type="button" class="zoom-btn" data-zoom-action="out" aria-label="Zoom out">-</button>
+            <button type="button" class="zoom-btn" data-zoom-action="in" aria-label="Zoom in">+</button>
+            <button type="button" class="zoom-btn" data-zoom-action="reset" aria-label="Reset zoom">Reset</button>
+            <span class="zoom-level" aria-live="polite">100%</span>
+          </div>
+          <div class="zoom-viewport">
+            <img
+              src="./assets/makefile-flow.svg"
+              alt="WORLDSAR Makefile flow diagram showing ensure-runtime checks and VM or HPC execution branches."
+              class="diagram-image zoom-image"
+            >
+          </div>
           <figcaption>Flow from <code>run</code> to runtime checks, mode selection, and helper targets.</figcaption>
         </figure>
       </section>

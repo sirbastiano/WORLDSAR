@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>WORLDSAR Docs - Mission Pipelines</title>
+  <meta name="description" content="Mission-specific preprocessing pipelines derived from pyscripts/worldsar.py.">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body class="theme-midnight">
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-content">
+        <div class="brand-row">
+          <img src="./assets/ESAΦ-lab_WT.png" alt="ESA PhiLab logo" class="philab-logo">
+        </div>
+        <p class="eyebrow">WORLDSAR Documentation</p>
+        <h1>Mission Pipelines</h1>
+        <p class="lead">Pipeline graphs generated from the mission router and preprocessing functions in <code>pyscripts/worldsar.py</code>.</p>
+      </div>
+      <div class="theme-picker">
+        <label for="theme-select">Skin</label>
+        <select id="theme-select" aria-label="Select documentation skin">
+          <option value="theme-midnight">Midnight</option>
+          <option value="theme-carbon">Carbon</option>
+          <option value="theme-slate">Slate</option>
+        </select>
+      </div>
+    </header>
+
+    <nav class="site-nav" aria-label="Documentation pages">
+      <a href="./intro.html">Intro</a>
+      <a href="./index.html">Overview</a>
+      <a href="./getting-started.html">1-2. Getting Started</a>
+      <a href="./runtime-assets.html">3. Runtime Assets</a>
+      <a href="./input-and-run.html">4-5. Input and Running</a>
+      <a href="./operations.html">6-7. Operations</a>
+      <a href="./pipelines.html">Pipelines</a>
+      <a href="./intro.html#makefile-reference">Makefile Reference</a>
+      <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
+      <a href="./sar-acquisition-modes-tables.html">SAR Acquisition Tables</a>
+    </nav>
+
+    <main>
+      <section class="panel">
+        <h2>Router Mapping</h2>
+        <p>Mission mode dispatch configured in <code>ROUTER</code>:</p>
+        <ul>
+          <li><code>S1TOPS</code> -> <code>pipeline_sentinel(is_TOPS=True)</code></li>
+          <li><code>S1STRIP</code> -> <code>pipeline_sentinel(is_TOPS=False)</code></li>
+          <li><code>TSX</code> -> <code>pipeline_tsx_csg</code></li>
+          <li><code>CSG</code> -> <code>pipeline_tsx_csg</code></li>
+          <li><code>BM</code> -> <code>pipeline_biomass</code></li>
+          <li><code>NISAR</code> -> <code>pipeline_nisar</code></li>
+        </ul>
+      </section>
+
+      <section class="panel">
+        <h2>Sentinel-1 TOPS (S1TOPS)</h2>
+        <p>Splits by IW swath and applies orbit, calibration, deramp/demod, deburst, polarimetric decomposition, and terrain correction per swath.</p>
+        <figure class="diagram-figure zoom-box" data-zoom-min="1" data-zoom-max="4" data-zoom-step="0.25">
+          <div class="zoom-toolbar" role="group" aria-label="Diagram zoom controls">
+            <button type="button" class="zoom-btn" data-zoom-action="out" aria-label="Zoom out">-</button>
+            <button type="button" class="zoom-btn" data-zoom-action="in" aria-label="Zoom in">+</button>
+            <button type="button" class="zoom-btn" data-zoom-action="reset" aria-label="Reset zoom">Reset</button>
+            <span class="zoom-level" aria-live="polite">100%</span>
+          </div>
+          <div class="zoom-viewport">
+            <img src="./assets/pipeline-s1-tops.svg" alt="Sentinel-1 TOPS mission pipeline graph." class="diagram-image zoom-image">
+          </div>
+          <figcaption><a href="https://www.figma.com/online-whiteboard/create-diagram/7026184f-dd5b-4114-aee0-85bb006ec47a?utm_source=chatgpt&utm_content=edit_in_figjam&oai_id=&request_id=605d398f-e5d3-46b6-bffb-9216b040167f">Open editable diagram in FigJam</a></figcaption>
+        </figure>
+      </section>
+
+      <section class="panel">
+        <h2>Sentinel-1 STRIP (S1STRIP)</h2>
+        <p>Runs orbit correction, calibration, subaperture step, polarimetric decomposition, and terrain correction.</p>
+        <figure class="diagram-figure zoom-box" data-zoom-min="1" data-zoom-max="4" data-zoom-step="0.25">
+          <div class="zoom-toolbar" role="group" aria-label="Diagram zoom controls">
+            <button type="button" class="zoom-btn" data-zoom-action="out" aria-label="Zoom out">-</button>
+            <button type="button" class="zoom-btn" data-zoom-action="in" aria-label="Zoom in">+</button>
+            <button type="button" class="zoom-btn" data-zoom-action="reset" aria-label="Reset zoom">Reset</button>
+            <span class="zoom-level" aria-live="polite">100%</span>
+          </div>
+          <div class="zoom-viewport">
+            <img src="./assets/pipeline-s1-strip.svg" alt="Sentinel-1 STRIP mission pipeline graph." class="diagram-image zoom-image">
+          </div>
+          <figcaption><a href="https://www.figma.com/online-whiteboard/create-diagram/6b6415fa-2154-43f7-9f05-becd3c3a4db6?utm_source=chatgpt&utm_content=edit_in_figjam&oai_id=&request_id=bbb06e4a-1743-4b60-ab89-0cc30ed6979a">Open editable diagram in FigJam</a></figcaption>
+        </figure>
+      </section>
+
+      <section class="panel">
+        <h2>TerraSAR-X (TSX)</h2>
+        <p>Runs calibration then terrain correction at 5 m spacing.</p>
+        <figure class="diagram-figure zoom-box" data-zoom-min="1" data-zoom-max="4" data-zoom-step="0.25">
+          <div class="zoom-toolbar" role="group" aria-label="Diagram zoom controls">
+            <button type="button" class="zoom-btn" data-zoom-action="out" aria-label="Zoom out">-</button>
+            <button type="button" class="zoom-btn" data-zoom-action="in" aria-label="Zoom in">+</button>
+            <button type="button" class="zoom-btn" data-zoom-action="reset" aria-label="Reset zoom">Reset</button>
+            <span class="zoom-level" aria-live="polite">100%</span>
+          </div>
+          <div class="zoom-viewport">
+            <img src="./assets/pipeline-tsx.svg" alt="TerraSAR-X mission pipeline graph." class="diagram-image zoom-image">
+          </div>
+          <figcaption><a href="https://www.figma.com/online-whiteboard/create-diagram/4bfc9d0c-c551-42c8-b471-4fd6e8ec6b51?utm_source=chatgpt&utm_content=edit_in_figjam&oai_id=&request_id=7c492871-baac-435b-8a91-c4cc7e2a2afb">Open editable diagram in FigJam</a></figcaption>
+        </figure>
+      </section>
+
+      <section class="panel">
+        <h2>COSMO-SkyMed (CSG)</h2>
+        <p>Uses the same preprocessing function as TSX: calibration then terrain correction at 5 m spacing.</p>
+        <figure class="diagram-figure zoom-box" data-zoom-min="1" data-zoom-max="4" data-zoom-step="0.25">
+          <div class="zoom-toolbar" role="group" aria-label="Diagram zoom controls">
+            <button type="button" class="zoom-btn" data-zoom-action="out" aria-label="Zoom out">-</button>
+            <button type="button" class="zoom-btn" data-zoom-action="in" aria-label="Zoom in">+</button>
+            <button type="button" class="zoom-btn" data-zoom-action="reset" aria-label="Reset zoom">Reset</button>
+            <span class="zoom-level" aria-live="polite">100%</span>
+          </div>
+          <div class="zoom-viewport">
+            <img src="./assets/pipeline-csg.svg" alt="COSMO-SkyMed mission pipeline graph." class="diagram-image zoom-image">
+          </div>
+          <figcaption><a href="https://www.figma.com/online-whiteboard/create-diagram/d425793b-8e9a-4425-9763-6adddfead356?utm_source=chatgpt&utm_content=edit_in_figjam&oai_id=&request_id=995b024c-2be9-49c4-b1db-1a2c53515720">Open editable diagram in FigJam</a></figcaption>
+        </figure>
+      </section>
+
+      <section class="panel">
+        <h2>BIOMASS (BM)</h2>
+        <p>Writes product output using the GeoTIFF writer pipeline.</p>
+        <figure class="diagram-figure zoom-box" data-zoom-min="1" data-zoom-max="4" data-zoom-step="0.25">
+          <div class="zoom-toolbar" role="group" aria-label="Diagram zoom controls">
+            <button type="button" class="zoom-btn" data-zoom-action="out" aria-label="Zoom out">-</button>
+            <button type="button" class="zoom-btn" data-zoom-action="in" aria-label="Zoom in">+</button>
+            <button type="button" class="zoom-btn" data-zoom-action="reset" aria-label="Reset zoom">Reset</button>
+            <span class="zoom-level" aria-live="polite">100%</span>
+          </div>
+          <div class="zoom-viewport">
+            <img src="./assets/pipeline-biomass.svg" alt="BIOMASS mission pipeline graph." class="diagram-image zoom-image">
+          </div>
+          <figcaption><a href="https://www.figma.com/online-whiteboard/create-diagram/522e1e84-2ce3-4ac6-ac92-dfb0263a2776?utm_source=chatgpt&utm_content=edit_in_figjam&oai_id=&request_id=ba71fe33-8ba2-4461-8010-c3674c6b7ee3">Open editable diagram in FigJam</a></figcaption>
+        </figure>
+      </section>
+
+      <section class="panel">
+        <h2>NISAR</h2>
+        <p>Validates <code>.h5</code> format and passes the product through preprocessing; tiling is handled downstream by <code>NISARCutter</code>.</p>
+        <figure class="diagram-figure zoom-box" data-zoom-min="1" data-zoom-max="4" data-zoom-step="0.25">
+          <div class="zoom-toolbar" role="group" aria-label="Diagram zoom controls">
+            <button type="button" class="zoom-btn" data-zoom-action="out" aria-label="Zoom out">-</button>
+            <button type="button" class="zoom-btn" data-zoom-action="in" aria-label="Zoom in">+</button>
+            <button type="button" class="zoom-btn" data-zoom-action="reset" aria-label="Reset zoom">Reset</button>
+            <span class="zoom-level" aria-live="polite">100%</span>
+          </div>
+          <div class="zoom-viewport">
+            <img src="./assets/pipeline-nisar.svg" alt="NISAR mission pipeline graph." class="diagram-image zoom-image">
+          </div>
+          <figcaption><a href="https://www.figma.com/online-whiteboard/create-diagram/c0fcf319-15b1-4aef-a875-bf9690da0faf?utm_source=chatgpt&utm_content=edit_in_figjam&oai_id=&request_id=896f7bba-79ef-4717-9bd5-cec44a7232cf">Open editable diagram in FigJam</a></figcaption>
+        </figure>
+      </section>
+    </main>
+  </div>
+  <script src="./app.js"></script>
+</body>
+</html>

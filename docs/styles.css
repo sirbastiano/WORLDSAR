@@ -415,14 +415,74 @@ pre {
   margin: 0.6rem 0 0 0;
 }
 
-.diagram-image {
-  width: 100%;
-  height: auto;
-  display: block;
+.zoom-box {
+  margin-top: 0.65rem;
+}
+
+.zoom-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-bottom: 0.55rem;
+}
+
+.zoom-btn {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-soft) 86%, white 14%);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  min-width: 2rem;
+  padding: 0.25rem 0.52rem;
+  cursor: pointer;
+}
+
+.zoom-btn:hover {
+  border-color: color-mix(in srgb, var(--link) 60%, var(--border) 40%);
+  color: var(--link-active);
+}
+
+.zoom-level {
+  margin-left: 0.3rem;
+  color: var(--text-soft);
+  font-size: 0.84rem;
+  min-width: 3.2rem;
+}
+
+.zoom-viewport {
+  overflow: auto;
+  max-height: 560px;
   border: 1px solid var(--border);
   border-radius: 10px;
   box-shadow: 0 10px 24px var(--shadow);
   background: color-mix(in srgb, var(--bg-soft) 90%, black 10%);
+  cursor: default;
+}
+
+.zoom-box.is-zoomed .zoom-viewport {
+  cursor: grab;
+}
+
+.zoom-viewport.is-dragging {
+  cursor: grabbing !important;
+}
+
+.diagram-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.zoom-image {
+  max-width: none;
+  transform-origin: top left;
+  user-select: none;
+  -webkit-user-drag: none;
 }
 
 .diagram-figure figcaption {
@@ -503,5 +563,9 @@ td {
 
   .hero h1 {
     font-size: 1.45rem;
+  }
+
+  .zoom-viewport {
+    max-height: 360px;
   }
 }

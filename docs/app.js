@@ -161,6 +161,119 @@
     });
   }
 
+  function initZoomBoxes() {
+    var boxes = document.querySelectorAll(".zoom-box");
+    boxes.forEach(function (box) {
+      var viewport = box.querySelector(".zoom-viewport");
+      var image = box.querySelector(".zoom-image");
+      var zoomInBtn = box.querySelector('[data-zoom-action="in"]');
+      var zoomOutBtn = box.querySelector('[data-zoom-action="out"]');
+      var resetBtn = box.querySelector('[data-zoom-action="reset"]');
+      var zoomLabel = box.querySelector(".zoom-level");
+
+      if (!viewport || !image) {
+        return;
+      }
+
+      var minZoom = parseFloat(box.getAttribute("data-zoom-min") || "1");
+      var maxZoom = parseFloat(box.getAttribute("data-zoom-max") || "4");
+      var step = parseFloat(box.getAttribute("data-zoom-step") || "0.25");
+      var zoom = minZoom;
+
+      var dragging = false;
+      var startX = 0;
+      var startY = 0;
+      var startLeft = 0;
+      var startTop = 0;
+
+      function applyZoom(nextZoom, keepCenter) {
+        var clamped = clamp(nextZoom, minZoom, maxZoom);
+        var viewportRect = null;
+        var anchorX = 0;
+        var anchorY = 0;
+
+        if (keepCenter) {
+          viewportRect = viewport.getBoundingClientRect();
+          anchorX = (viewport.scrollLeft + viewportRect.width / 2) / zoom;
+          anchorY = (viewport.scrollTop + viewportRect.height / 2) / zoom;
+        }
+
+        zoom = clamped;
+        image.style.transform = "scale(" + zoom.toFixed(2) + ")";
+        if (zoomLabel) {
+          zoomLabel.textContent = Math.round(zoom * 100) + "%";
+        }
+        box.classList.toggle("is-zoomed", zoom > (minZoom + 0.001));
+
+        if (keepCenter && viewportRect) {
+          viewport.scrollLeft = Math.max(0, (anchorX * zoom) - viewportRect.width / 2);
+          viewport.scrollTop = Math.max(0, (anchorY * zoom) - viewportRect.height / 2);
+        }
+
+        if (Math.abs(zoom - minZoom) < 0.001) {
+          viewport.scrollLeft = 0;
+          viewport.scrollTop = 0;
+        }
+      }
+
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener("click", function () {
+          applyZoom(zoom + step, true);
+        });
+      }
+
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener("click", function () {
+          applyZoom(zoom - step, true);
+        });
+      }
+
+      if (resetBtn) {
+        resetBtn.addEventListener("click", function () {
+          applyZoom(minZoom, false);
+        });
+      }
+
+      viewport.addEventListener("dblclick", function () {
+        applyZoom(zoom + step, true);
+      });
+
+      viewport.addEventListener("mousedown", function (event) {
+        if (zoom <= (minZoom + 0.001)) {
+          return;
+        }
+        dragging = true;
+        startX = event.clientX;
+        startY = event.clientY;
+        startLeft = viewport.scrollLeft;
+        startTop = viewport.scrollTop;
+        viewport.classList.add("is-dragging");
+        event.preventDefault();
+      });
+
+      window.addEventListener("mousemove", function (event) {
+        if (!dragging) {
+          return;
+        }
+        var dx = event.clientX - startX;
+        var dy = event.clientY - startY;
+        viewport.scrollLeft = startLeft - dx;
+        viewport.scrollTop = startTop - dy;
+      });
+
+      window.addEventListener("mouseup", function () {
+        if (!dragging) {
+          return;
+        }
+        dragging = false;
+        viewport.classList.remove("is-dragging");
+      });
+
+      applyZoom(minZoom, false);
+    });
+  }
+
   initDynamicChrome();
   initAnchorLinks();
+  initZoomBoxes();
 })();
