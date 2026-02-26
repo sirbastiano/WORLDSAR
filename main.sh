@@ -7,11 +7,21 @@
 set -euo pipefail
 
 # ---- Paths (override if needed) ----
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
-BASE_DIR="${BASE_DIR:-$(cd "${SCRIPT_DIR}/." && pwd -P)}"
-DATA_DIR="${DATA_DIR:-${BASE_DIR}/phidown_data}"
-PY_SCRIPT_DIR="${PY_SCRIPT_DIR:-${BASE_DIR}/pyscripts}"
-SIF_IMAGE="${SIF_IMAGE:-${BASE_DIR}/sarpyx.sif}"
+# SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
+# BASE_DIR="${BASE_DIR:-$(cd "${SCRIPT_DIR}/." && pwd -P)}"
+# DATA_DIR="${DATA_DIR:-${BASE_DIR}/phidown_data}"
+# PY_SCRIPT_DIR="${PY_SCRIPT_DIR:-${BASE_DIR}/pyscripts}"
+# SIF_IMAGE="${SIF_IMAGE:-${BASE_DIR}/sarpyx.sif}"
+# # Product selection: first positional arg, then PRODUCT env var.
+# PRODUCT_NAME="${1:-${PRODUCT:-}}"
+# if [[ -z "${PRODUCT_NAME}" ]]; then
+#   echo "ERROR: Product name is required." >&2
+#   echo "Usage: ${0##*/} <product_name>" >&2
+#   echo "Or set PRODUCT=<product_name>" >&2
+#   exit 2
+# fi
+# PRODUCT_NAME="$(basename "${PRODUCT_NAME}")"
+# PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
 
 # =========================== HARDCODED PATHS ===========================
 # SPACEHPC PATHS (ovverride):
@@ -20,13 +30,11 @@ SCRIPT_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/scripts"
 DATA_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/phidown_data"
 PY_SCRIPT_DIR="/lustre/projects/1001/rdelprete/WORLDSAR/pyscripts"
 SIF_IMAGE="/lustre/projects/1001/rdelprete/WORLDSAR/sarpyx.sif"
+PRODUCT_NAME="S1A_S3_SLC__1SDV_20160820T171616_20160820T171644_012687_013EFB_B6D5.SAFE"
+PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
 # =========================== COMMENT OUT/ADJUST BELOW AS NEEDED ===========================
 
 
-
-# Product selection: first positional arg, then PRODUCT env var.
-PRODUCT_NAME="S1A_S3_SLC__1SDV_20160820T171616_20160820T171644_012687_013EFB_B6D5.SAFE"
-PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
 
 OUTPUT_PATH="${OUTPUT_PATH:-${BASE_DIR}/OUT/worldsar_output}"
 CUTS_OUTDIR="${CUTS_OUTDIR:-${BASE_DIR}/OUT/tiles}"
