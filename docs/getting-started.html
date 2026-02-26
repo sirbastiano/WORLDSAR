@@ -56,20 +56,35 @@
         <p>From repository root, run:</p>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
-          <pre><code>cd WORLDSAR</code></pre>
+          <pre><code>git clone https://github.com/sirbastiano/WORLDSAR
+cd WORLDSAR</code></pre>
         </div>
-        <p>Optional Python environment setup:</p>
+        <p>Python environment setup (required for Hugging Face dependencies used to install support material):</p>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
           <pre><code>uv sync</code></pre>
+        </div>
+        <p>Alternative with <code>pdm</code>:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>pdm install</code></pre>
+        </div>
+        <p>Alternative with <code>pip</code>:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .</code></pre>
         </div>
       </section>
 
       <section class="panel">
         <h2>Setup Intent</h2>
         <p>
-          <code>uv sync</code> is optional for Makefile-driven runtime commands, but useful when you need local Python tooling in this repo.
-          Core processing is containerized via the SIF runtime and SNAP userdir.
+          The project dependencies are declared in <code>pyproject.toml</code> and include Hugging Face-related packages
+          (for example <code>huggingface-hub</code> and <code>phidown</code>) used by support-material download workflows.
+          Core processing remains containerized via the SIF runtime and SNAP userdir.
         </p>
       </section>
     </main>

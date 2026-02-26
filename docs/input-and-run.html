@@ -49,41 +49,49 @@
         </div>
         <p><code>PRODUCT</code> for <code>make run</code> and <code>make run-vm</code> can be:</p>
         <ul>
-          <li>The <code>.SAFE</code> directory name</li>
-          <li>A full path to that <code>.SAFE</code> directory</li>
+          <li>A <code>.SAFE</code> directory name (resolved under mode-specific <code>DATA_DIR</code>)</li>
+          <li>An existing path (absolute or relative, if it contains <code>/</code>)</li>
         </ul>
-        <p><code>main.sh</code> normalizes to the basename and resolves under <code>./phidown_data</code>.</p>
+        <p>
+          <code>main.sh</code> resolves name-only products under <code>DATA_DIR</code> (VM or HPC depending on <code>WORLDSAR_MODE</code>).
+          Path inputs are used directly and must exist.
+        </p>
       </section>
 
       <section class="panel">
         <h2>5. Running</h2>
-        <p><strong>Default mode:</strong> <code>WORLDSAR_MODE=vm</code>.</p>
+        <p><strong>Current Makefile default mode:</strong> <code>WORLDSAR_MODE=hpc</code>.</p>
         <h3>5.1 Local VM Run (No PBS)</h3>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
-          <pre><code>make run-vm PRODUCT=&lt;product_name&gt;.SAFE</code></pre>
+          <pre><code>WORLDSAR_MODE=vm make run PRODUCT=&lt;product_name_or_full_path&gt;.SAFE</code></pre>
         </div>
-        <p>Example:</p>
+        <p>Equivalent explicit target:</p>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
-          <pre><code>make run-vm PRODUCT=./phidown_data/S1A_S3_SLC__1SDV_20151229T152825_20151229T152844_009258_00D5C6_F1C9.SAFE</code></pre>
+          <pre><code>WORLDSAR_MODE=vm make run-vm PRODUCT=&lt;product_name_or_full_path&gt;.SAFE</code></pre>
         </div>
 
         <h3>5.2 Cluster Run (PBS/qsub)</h3>
         <div class="code-block">
           <button class="copy-btn" type="button">Copy</button>
+          <pre><code>make run PRODUCT=&lt;product_name_or_full_path&gt;.SAFE</code></pre>
+        </div>
+        <p>Equivalent explicit mode selection:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
           <pre><code>WORLDSAR_MODE=hpc make run PRODUCT=&lt;product_name_or_full_path&gt;.SAFE</code></pre>
         </div>
-        <p>Equivalent behavior is achieved by setting <code>WORLDSAR_MODE=hpc</code> so the Makefile uses HPC defaults for paths and scheduler options.</p>
+        <p>In HPC mode, Makefile defaults for paths and scheduler options are applied.</p>
         <p>In PBS mode, PRODUCT is injected through qsub environment variables (<code>-v PRODUCT=...</code>), so qsub does not receive positional script arguments.</p>
         <p>For your workflow, HPC hardcoded defaults are also defined near the top of <code>main.sh</code> (for example <code>HPC_BASE_DIR</code> and related paths).</p>
-        <p>Set Makefile mode defaults in <code>Makefile</code> (top section): <code>WORLDSAR_MODE</code>, <code>VM_PROJECT_ROOT</code>, <code>HPC_PROJECT_ROOT</code>; use command-line overrides for one-off runs.</p>
+        <p>To change persistent defaults, edit <code>Makefile</code> top-level mode/path variables (for example <code>WORLDSAR_MODE</code>, <code>VM_PROJECT_ROOT</code>, <code>HPC_PROJECT_ROOT</code>).</p>
       </section>
 
       <section class="panel">
         <h2>Execution Choice Guidance</h2>
-        <p>Use <code>run-vm</code> first for validation and troubleshooting in your current shell session.</p>
-        <p>Use <code>run</code> when your environment is PBS-enabled and you need queue-based execution.</p>
+        <p>Use <code>WORLDSAR_MODE=vm make run ...</code> (or <code>run-vm</code>) for local validation and troubleshooting.</p>
+        <p>Use <code>make run ...</code> in PBS-enabled environments where the default <code>hpc</code> mode is intended.</p>
       </section>
     </main>
   </div>
