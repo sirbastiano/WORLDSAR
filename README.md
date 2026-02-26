@@ -4,7 +4,7 @@ From repository root:
 
 ```bash
 make pull-sif
-make run-vm PRODUCT=<product_name>
+make run PRODUCT=<product_name>           # VM (default)
 ```
 
 Optional custom overrides:
@@ -15,6 +15,7 @@ WORLDSAR_MODE=hpc make run PRODUCT=<product_name> \
 ```
 
 - Local VM mode: `make run-vm PRODUCT=<product_name>` (default mode)
+- Local VM mode: `make run PRODUCT=<product_name>` (default mode)
 - Cluster mode: `WORLDSAR_MODE=hpc make run PRODUCT=<product_name>`
 
 ### Manual alternatives
