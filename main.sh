@@ -75,18 +75,20 @@ fi
 
 # ---- Product ----
 # Input resolution order: positional arg -> PRODUCT -> WORLDSAR_PRODUCT
-PRODUCT_NAME="${1:-${PRODUCT:-${WORLDSAR_PRODUCT:-}}}"
-if [[ -z "${PRODUCT_NAME}" ]]; then
+PRODUCT_INPUT="${1:-${PRODUCT:-${WORLDSAR_PRODUCT:-}}}"
+if [[ -z "${PRODUCT_INPUT}" ]]; then
   echo "ERROR: Product name is required." >&2
   echo "Usage: ${0##*/} <product_name>" >&2
   echo "Or set PRODUCT=<product_name>" >&2
   exit 2
 fi
 
-if [[ -d "${PRODUCT_NAME}" ]]; then
-  PROD_PATH="${PRODUCT_NAME}"
+# If PRODUCT contains a slash, treat it as a path (absolute or relative).
+# Otherwise treat it as a SAFE directory name under DATA_DIR.
+if [[ "${PRODUCT_INPUT}" == */* ]]; then
+  PROD_PATH="${PRODUCT_INPUT}"
 else
-  PROD_PATH="${DATA_DIR}/${PRODUCT_NAME}"
+  PROD_PATH="${DATA_DIR}/${PRODUCT_INPUT}"
 fi
 
 if [[ ! -d "${PROD_PATH}" ]]; then
