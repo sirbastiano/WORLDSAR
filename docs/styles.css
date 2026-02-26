@@ -112,7 +112,7 @@ code {
 }
 
 .philab-logo {
-  width: min(380px, 100%);
+  width: min(140px, 30vw);
   height: auto;
   display: block;
   border-radius: 12px;
