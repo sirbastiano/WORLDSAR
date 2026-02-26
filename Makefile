@@ -3,7 +3,7 @@
 SHELL := /usr/bin/env bash
 
 # Manual mode switch: set WORLDSAR_MODE=vm or hpc at make time.
-WORLDSAR_MODE ?= vm
+WORLDSAR_MODE ?= hpc
 RUN_MODE ?= $(WORLDSAR_MODE)
 
 # ---- VM defaults ----
