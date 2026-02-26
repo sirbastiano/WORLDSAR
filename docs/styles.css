@@ -411,6 +411,26 @@ pre {
   overflow-x: auto;
 }
 
+.diagram-figure {
+  margin: 0.6rem 0 0 0;
+}
+
+.diagram-image {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 10px 24px var(--shadow);
+  background: color-mix(in srgb, var(--bg-soft) 90%, black 10%);
+}
+
+.diagram-figure figcaption {
+  margin-top: 0.55rem;
+  font-size: 0.9rem;
+  color: var(--text-soft);
+}
+
 .sar-acquisition-page .table-wrap {
   margin: 0.55rem 0 1rem 0;
 }

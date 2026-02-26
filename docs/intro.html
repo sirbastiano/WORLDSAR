@@ -38,7 +38,7 @@
       <a href="./runtime-assets.html">3. Runtime Assets</a>
       <a href="./input-and-run.html">4-5. Input and Running</a>
       <a href="./operations.html">6-7. Operations</a>
-      <a href="./makefile-reference.html">Makefile Reference</a>
+      <a href="#makefile-reference">Makefile Reference</a>
       <a href="./sentinel1-metadata.html">Sentinel-1 Metadata</a>
       <a href="./sar-acquisition-modes-tables.html">SAR Acquisition Tables</a>
     </nav>
@@ -80,9 +80,78 @@
           <a href="./runtime-assets.html" class="intro-btn">3. Runtime Assets</a>
           <a href="./input-and-run.html" class="intro-btn">4-5. Input and Running</a>
           <a href="./operations.html" class="intro-btn">6-7. Operations</a>
-          <a href="./makefile-reference.html" class="intro-btn">Makefile Reference</a>
+          <a href="#makefile-reference" class="intro-btn">Makefile Reference</a>
           <a href="./sar-acquisition-modes-tables.html" class="intro-btn">SAR Acquisition Tables</a>
           <a href="./sentinel1-metadata.html" class="intro-btn">Sentinel-1 Metadata</a>
+        </div>
+      </section>
+
+      <section id="makefile-reference" class="panel">
+        <h2>Makefile Reference</h2>
+        <p>Set execution behavior by exporting or assigning variables at invocation time. Defaults are defined at the top of <code>Makefile</code>.</p>
+        <p><strong>Mode selection:</strong></p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>WORLDSAR_MODE=vm   make run PRODUCT=&lt;product_name_or_full_path&gt;.SAFE
+WORLDSAR_MODE=hpc  make run PRODUCT=&lt;product_name_or_full_path&gt;.SAFE</code></pre>
+        </div>
+        <p>Useful defaults near the top of the Makefile:</p>
+        <div class="code-block">
+          <button class="copy-btn" type="button">Copy</button>
+          <pre><code>WORLDSAR_MODE ?= vm
+VM_PROJECT_ROOT ?= .
+HPC_PROJECT_ROOT ?= /lustre/projects/1001/rdelprete/WORLDSAR</code></pre>
+        </div>
+        <p>You can override any default on the command line, for example <code>HPC_PBS_SELECT</code>, <code>SIF_IMAGE</code>, or <code>HPC_OUTPUT_DIR</code>.</p>
+      </section>
+
+      <section class="panel">
+        <h2>Makefile Execution Flow</h2>
+        <p>This diagram summarizes how <code>make run</code> validates runtime requirements and branches into VM or HPC execution.</p>
+        <figure class="diagram-figure">
+          <img
+            src="./assets/makefile-flow.svg"
+            alt="WORLDSAR Makefile flow diagram showing ensure-runtime checks and VM or HPC execution branches."
+            class="diagram-image"
+          >
+          <figcaption>Flow from <code>run</code> to runtime checks, mode selection, and helper targets.</figcaption>
+        </figure>
+      </section>
+
+      <section class="panel">
+        <h2>Makefile Targets</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Target</th>
+                <th>Purpose</th>
+                <th>Notes</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td><code>help</code></td><td>Show available command summary.</td><td>Default target.</td></tr>
+              <tr><td><code>down</code></td><td>Download SAR product into <code>./phidown_data</code>.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+              <tr><td><code>ensure-sif</code></td><td>Ensure SIF image exists.</td><td>Calls <code>pull-sif</code> if missing.</td></tr>
+              <tr><td><code>ensure-snap</code></td><td>Ensure <code>.snap</code> userdir exists.</td><td>Calls <code>pull-snap</code> if missing.</td></tr>
+              <tr><td><code>ensure-product</code></td><td>Validate that product input was provided.</td><td>Used by run targets.</td></tr>
+              <tr><td><code>run</code></td><td>Run using selected mode.</td><td>Requires <code>PRODUCT=...</code>; in HPC mode PRODUCT is passed as a qsub environment variable so no positional args are sent.</td></tr>
+              <tr><td><code>run-vm</code></td><td>Run locally without PBS.</td><td>Writes timestamped stdout/stderr logs.</td></tr>
+              <tr><td><code>status</code></td><td>Show current job status.</td><td>Uses <code>qstat -u $(PBS_USER)</code>.</td></tr>
+              <tr><td><code>logs</code></td><td>Show recent log files.</td><td>Shows latest stdout/stderr and scheduler logs.</td></tr>
+              <tr><td><code>clean</code></td><td>Remove output artifacts.</td><td>Removes output, tiles, and DB directories.</td></tr>
+              <tr><td><code>clean-logs</code></td><td>Remove scheduler and runtime logs.</td><td>Cleans files under <code>./logs</code>.</td></tr>
+              <tr><td><code>pull-sif</code></td><td>Pull/update Singularity image from Hugging Face.</td><td>Uses scratch-based HF cache variables.</td></tr>
+              <tr><td><code>pull-sif-generic</code></td><td>Pull/update Singularity image using project-local <code>.tmp</code> cache.</td><td>For environments where scratch cache is not preferred.</td></tr>
+              <tr><td><code>pull-snap</code></td><td>Download and install SNAP userdir.</td><td>Fetches tarball, extracts <code>.snap</code> into project root.</td></tr>
+              <tr><td><code>clean-snap-artifacts</code></td><td>Remove temporary SNAP pull artifacts.</td><td>Deletes <code>./.tmp/snap</code>.</td></tr>
+              <tr><td><code>list-data</code></td><td>List available local SAR data.</td><td>Reads <code>./phidown_data</code>.</td></tr>
+              <tr><td><code>downloader</code></td><td>Download a product via legacy downloader helper.</td><td>Requires <code>PRODUCT=...</code>.</td></tr>
+              <tr><td><code>uploader</code></td><td>Upload products to Hugging Face.</td><td>Runs <code>scripts/uploader.sh</code>. On SpaceHPC, use <code>HF_UPLOAD_NUM_WORKERS=1</code> (passes <code>--num-workers 1</code>) to avoid upload failures.</td></tr>
+              <tr><td><code>show-cache</code></td><td>Show HF cache and temp directories.</td><td>Prints HF-related env paths.</td></tr>
+              <tr><td><code>clean-hf-cache</code></td><td>Prune Hugging Face cache.</td><td>Runs <code>hf cache prune</code>.</td></tr>
+            </tbody>
+          </table>
         </div>
       </section>
 
