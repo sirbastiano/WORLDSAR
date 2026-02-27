@@ -257,9 +257,10 @@ pull-sif:
 	@echo "HF_XET_CACHE=$(HF_XET_CACHE)"
 	@echo "TMPDIR=$(HF_TMPDIR)"
 	mkdir -p "$(SIF_DIR)" "$(HF_HUB_CACHE)" "$(HF_XET_CACHE)" "$(HF_ASSETS_CACHE)" "$(HF_TMPDIR)"
-	hf download "$(SIF_REPO)" "$(SIF_NAME)" \
+	export MALLOC_ARENA_MAX=2 && hf download "$(SIF_REPO)" "$(SIF_NAME)" \
 		--repo-type dataset \
 		--cache-dir "$(HF_HUB_CACHE)" \
+		--max-workers "$(HF_UPLOAD_NUM_WORKERS)" \
 		--local-dir "$(SIF_DIR)"
 	rm -rf "$(PROJECT_ROOT)/.tmp"
 
@@ -278,9 +279,11 @@ pull-sif-generic:
 	HF_ASSETS_CACHE="$$HF_ASSETS_CACHE_DIR" \
 	TMPDIR="$$HF_TMPDIR_DIR" \
 	HF_HUB_DISABLE_XET=1 \
-	hf download "$(SIF_REPO)" "$(SIF_NAME)" \
+	MALLOC_ARENA_MAX=2 && \
+		hf download "$(SIF_REPO)" "$(SIF_NAME)" \
 		--repo-type dataset \
 		--cache-dir "$$HF_HUB_CACHE_DIR" \
+		--max-workers "$(HF_UPLOAD_NUM_WORKERS)" \
 		--local-dir "$(PROJECT_ROOT)"
 	rm -rf "$(PROJECT_ROOT)/.tmp"
 
