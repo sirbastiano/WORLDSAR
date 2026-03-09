@@ -64,7 +64,13 @@ def _sentinel_post_chain(op):
     op.Calibration(output_complex=True)
     op.TopsarDerampDemod()
     op.Deburst()
-    # TODO: subaperture processing (do_subaps not yet implemented in GPT class).
+    op.do_subaps(
+        safe_path=product_path,
+        dim_path=op.prod_path,
+        n_decompositions=[3],
+        byte_order=1,
+        VERBOSE=False,
+    )
     op.polarimetric_decomposition(decomposition="H-Alpha Dual Pol Decomposition", window_size=5)
     op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=10.0)
     return op.prod_path
