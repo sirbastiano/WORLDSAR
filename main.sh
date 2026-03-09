@@ -91,9 +91,9 @@ else
   PROD_PATH="${DATA_DIR}/${PRODUCT_INPUT}"
 fi
 
-if [[ ! -d "${PROD_PATH}" ]]; then
-  echo "ERROR: Product directory not found: ${PROD_PATH}" >&2
-  echo "Set PRODUCT to a SAFE directory name under ${DATA_DIR}, or pass an existing directory path." >&2
+if [[ ! -e "${PROD_PATH}" ]]; then
+  echo "ERROR: Product not found: ${PROD_PATH}" >&2
+  echo "Set PRODUCT to a SAFE directory name under ${DATA_DIR}, or pass an existing path (directory or file)." >&2
   exit 2
 fi
 
@@ -111,7 +111,7 @@ GRID_HOST_DIR="${GRID_HOST_DIR:-}"
 [[ -d "${DATA_DIR}" ]]     || { echo "ERROR: DATA_DIR not found: ${DATA_DIR}" >&2; exit 2; }
 [[ -d "${PY_SCRIPT_DIR}" ]] || { echo "ERROR: PY_SCRIPT_DIR not found: ${PY_SCRIPT_DIR}" >&2; exit 2; }
 [[ -f "${SIF_IMAGE}" ]]    || { echo "ERROR: SIF_IMAGE not found: ${SIF_IMAGE}" >&2; exit 2; }
-[[ -d "${PROD_PATH}" ]]    || { echo "ERROR: PROD_PATH not found (SAFE dir): ${PROD_PATH}" >&2; exit 2; }
+[[ -e "${PROD_PATH}" ]]    || { echo "ERROR: PROD_PATH not found: ${PROD_PATH}" >&2; exit 2; }
 [[ -d "${SNAP_USER_DIR}" ]] || { echo "ERROR: SNAP_USER_DIR not found: ${SNAP_USER_DIR}" >&2; exit 2; }
 
 FALLBACK_OUTPUT_ROOT="${BASE_DIR}/outputs"

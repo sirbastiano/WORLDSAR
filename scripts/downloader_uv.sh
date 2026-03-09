@@ -5,7 +5,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJECT_DIR="${PROJECT_DIR:-$(cd "${SCRIPT_DIR}/.." && pwd -P)}"
 PHIDOWN_DATA_DIR="${PHIDOWN_DATA_DIR:-${PROJECT_DIR}/phidown_data}"
 PHIDOWN_CFG="${PHIDOWN_CFG:-${SCRIPT_DIR}/.s5cfg}"
-S5CMD_NUM_WORKERS="${S5CMD_NUM_WORKERS:-1}"
+S5CMD_NUM_WORKERS="${S5CMD_NUM_WORKERS:-12}"
 
 source "${PROJECT_DIR}/.venv/bin/activate"
 
@@ -27,6 +27,21 @@ exec "${REAL_S5CMD}" --numworkers "${S5CMD_NUM_WORKERS}" "$@"
 EOF
 chmod +x "${S5CMD_WRAP_DIR}/s5cmd"
 
+MAX_RETRIES="${MAX_RETRIES:-5}"
+RETRY_DELAY="${RETRY_DELAY:-10}"
+
 echo "phidown download: python -m phidown --name \"${PRODUCT}\" -o \"${PHIDOWN_DATA_DIR}/\" -c \"${PHIDOWN_CFG}\" --no-progress (s5cmd --numworkers ${S5CMD_NUM_WORKERS})"
-REAL_S5CMD="${S5CMD_BIN}" S5CMD_NUM_WORKERS="${S5CMD_NUM_WORKERS}" PATH="${S5CMD_WRAP_DIR}:${PATH}" \
-  python -m phidown --name "${PRODUCT}" -o "${PHIDOWN_DATA_DIR}/" -c "${PHIDOWN_CFG}" 
+
+attempt=1
+while true; do
+  REAL_S5CMD="${S5CMD_BIN}" S5CMD_NUM_WORKERS="${S5CMD_NUM_WORKERS}" PATH="${S5CMD_WRAP_DIR}:${PATH}" \
+    python -m phidown --name "${PRODUCT}" -o "${PHIDOWN_DATA_DIR}/" -c "${PHIDOWN_CFG}" && break
+  exit_code=$?
+  if [[ ${attempt} -ge ${MAX_RETRIES} ]]; then
+    echo "ERROR: Download failed after ${MAX_RETRIES} attempts (exit code ${exit_code})." >&2
+    exit ${exit_code}
+  fi
+  echo "WARNING: Download failed (attempt ${attempt}/${MAX_RETRIES}), retrying in ${RETRY_DELAY}s..." >&2
+  sleep "${RETRY_DELAY}"
+  attempt=$(( attempt + 1 ))
+done
