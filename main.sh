@@ -1,7 +1,7 @@
 #!/bin/bash
 #PBS -N worldsar
 #PBS -q cpu_std
-#PBS -l walltime=04:00:00
+#PBS -l walltime=23:30:00
 #PBS -l select=1:ncpus=192:mem=128g
 
 set -euo pipefail

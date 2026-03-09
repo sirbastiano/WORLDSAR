@@ -41,12 +41,12 @@ HPC_TILES_DIR ?= $(HPC_BASE_DIR)/OUT/tiles
 HPC_DB_DIR ?= $(HPC_BASE_DIR)/OUT/DB
 HPC_WORKSPACE_PREFIX ?= /work
 HPC_GRID_PATH ?= $(HPC_WORKSPACE_PREFIX)/grid/grid_10km.geojson
-HPC_GPT_MEMORY ?= 64G
+HPC_GPT_MEMORY ?= 128G
 HPC_GPT_PARALLELISM ?= 164
-HPC_GPT_TIMEOUT ?= 3600
+HPC_GPT_TIMEOUT ?= 7200
 HPC_PBS_QUEUE ?= cpu_std
-HPC_PBS_WALLTIME ?= 02:00:00
-HPC_PBS_SELECT ?= select=1:ncpus=192:mem=128g
+HPC_PBS_WALLTIME ?= 22:00:00
+HPC_PBS_SELECT ?= select=1:ncpus=192:mem=160g
 
 # ---- Effective runtime configuration ----
 ifneq ($(filter vm hpc,$(WORLDSAR_MODE)),)
