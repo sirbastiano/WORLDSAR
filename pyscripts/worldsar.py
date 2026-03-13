@@ -11,15 +11,20 @@ import os
 import re
 import subprocess
 import sys
+import xml.etree.ElementTree as ET
 from datetime import datetime
 from functools import partial
 from pathlib import Path
 
+import h5py
 import pandas as pd
+import pyproj
 from dotenv import load_dotenv
 
 from sarpyx.snapflow.engine import GPT
-from sarpyx.utils.geos import check_points_in_polygon, rectangle_to_wkt, rectanglify
+from sarpyx.utils.geos import (
+    check_points_in_polygon, grid_cell_utm_bbox, rectangle_to_wkt, rectanglify,
+)
 from sarpyx.utils.io import read_h5
 from sarpyx.utils.nisar_utils import NISARCutter, NISARReader
 from sarpyx.utils.wkt_utils import sentinel1_wkt_extractor_cdse, sentinel1_wkt_extractor_manifest
@@ -58,19 +63,19 @@ db_indexing = True
 #  Pipelines  –  one per mission family, dispatched via ROUTER[mode]
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _sentinel_post_chain(op):
+def _sentinel_post_chain(op, product_path):
     """Calibration → DerampDemod → Deburst → PolDecomp → TC  (shared by each swath)."""
     op.ApplyOrbitFile()
     op.Calibration(output_complex=True)
     op.TopsarDerampDemod()
     op.Deburst()
-    op.do_subaps(
-        safe_path=product_path,
-        dim_path=op.prod_path,
-        n_decompositions=[3],
-        byte_order=1,
-        VERBOSE=False,
-    )
+    # op.do_subaps(
+    #     safe_path=product_path,
+    #     dim_path=op.prod_path,
+    #     n_decompositions=[3],
+    #     byte_order=1,
+    #     VERBOSE=False,
+    # )
     op.polarimetric_decomposition(decomposition="H-Alpha Dual Pol Decomposition", window_size=5)
     op.TerrainCorrection(map_projection='AUTO:42001', pixel_spacing_in_meter=10.0)
     return op.prod_path
@@ -93,7 +98,7 @@ def pipeline_sentinel(
         for swath in ('IW1', 'IW2', 'IW3'):
             sw_op = _create_gpt_operator(Path(op.prod_path), output_dir / swath, 'BEAM-DIMAP', **gpt_kw)
             sw_op.TopsarSplit(subswath=swath) # SPLIT
-            results[swath] = _sentinel_post_chain(sw_op)
+            results[swath] = _sentinel_post_chain(sw_op, product_path) # CAL → DERAMP → DEBURST → POLDECOMP → TC
         return results                    # {IW1: path, IW2: path, IW3: path}
     
     # STRIP mode – no split / deburst needed
@@ -172,6 +177,7 @@ _PARSER_ARGS = [
     (['--snap-userdir'],               dict(dest='snap_userdir', type=str, default=None, help='Override SNAP user directory.')),
     (['--orbit-type'],                 dict(dest='orbit_type', type=str, default='Sentinel Precise (Auto Download)', help='SNAP Apply-Orbit-File orbitType.')),
     (['--orbit-continue-on-fail'],     dict(dest='orbit_continue_on_fail', action='store_true', help='Continue if orbit file cannot be applied.')),
+    (['--skip-preprocessing'],         dict(dest='skip_preprocessing', action='store_true', help='Skip TC preprocessing and reuse existing BEAM-DIMAP intermediate products for tiling.')),
 ]
 
 
@@ -269,12 +275,18 @@ def to_geotiff(product_path, output_dir, geo_region=None, output_name=None, gpt_
                        gpt_memory=gpt_memory, gpt_parallelism=gpt_parallelism, gpt_timeout=gpt_timeout)
 
 
-def subset(product_path, output_dir, geo_region=None, output_name=None, gpt_memory=None, gpt_parallelism=None, gpt_timeout=None):
-    assert geo_region is not None, 'Geo region WKT string must be provided.'
+def subset(product_path, output_dir, geo_region=None, region=None, output_name=None, gpt_memory=None, gpt_parallelism=None, gpt_timeout=None):
+    assert geo_region is not None or region is not None, \
+        'Either geo_region (WKT) or region (pixel coords "x,y,width,height") must be provided.'
+    kwargs = {'copy_metadata': True, 'output_name': output_name}
+    if geo_region is not None:
+        kwargs['geo_region'] = geo_region
+    if region is not None:
+        kwargs['region'] = region
     return _run_gpt_op(
         product_path, output_dir, 'HDF5', 'Subset',
         gpt_memory=gpt_memory, gpt_parallelism=gpt_parallelism, gpt_timeout=gpt_timeout,
-        copy_metadata=True, output_name=output_name, geo_region=geo_region,
+        **kwargs,
     )
 
 
@@ -287,22 +299,108 @@ def swath_splitter(swath, product_path, output_dir, gpt_memory=None, gpt_paralle
     )
 
 
+def _read_geotransform(dim_path: Path) -> tuple:
+    """Read a GDAL-style geotransform from a BEAM-DIMAP .dim file.
+
+    Returns (x_origin, x_pixel_size, 0, y_origin, 0, y_pixel_size) where
+    x_origin/y_origin are the UTM coordinates of the top-left pixel corner and
+    y_pixel_size is negative (northing decreases going down rows).
+
+    BEAM-DIMAP IMAGE_TO_MODEL_TRANSFORM stores values in Java AffineTransform order:
+    (m00, m10, m01, m11, m02, m12) = (x_scale, y_shear, x_shear, y_scale, x_translate, y_translate)
+    GDAL geotransform order: (x_origin, x_scale, x_rot, y_origin, y_rot, y_scale)
+    Mapping: GDAL = (m02, m00, m01, m12, m10, m11) = (values[4], values[0], values[2], values[5], values[1], values[3])
+    Note: GDAL's own BEAM-DIMAP driver misparses this transform, so we always use the XML directly.
+    """
+    tree = ET.parse(dim_path)
+    root = tree.getroot()
+    elem = root.find('.//IMAGE_TO_MODEL_TRANSFORM')
+    if elem is not None and elem.text is not None:
+        # Java AffineTransform order: (m00, m10, m01, m11, m02, m12)
+        v = [float(x.strip()) for x in elem.text.split(',')]
+        m00, m10, m01, m11, m02, m12 = v
+        return (m02, m00, m01, m12, m10, m11)
+    ulx = root.find('.//ULXMAP')
+    uly = root.find('.//ULYMAP')
+    xdim = root.find('.//XDIM')
+    ydim = root.find('.//YDIM')
+    if ulx is not None and uly is not None and xdim is not None and ydim is not None:
+        return (float(ulx.text), float(xdim.text), 0.0, float(uly.text), 0.0, -float(ydim.text))  # type: ignore[arg-type]
+    raise RuntimeError(f'Could not extract geotransform from {dim_path}')
+
+
+def _utm_bbox_to_pixel_region(utm_bbox: tuple, geotransform: tuple) -> str:
+    """Convert a UTM bounding box to a SNAP Subset region string 'x,y,width,height'.
+
+    Args:
+        utm_bbox: (x_min, y_min, x_max, y_max) in UTM metres.
+        geotransform: GDAL-style 6-tuple from _read_geotransform.
+
+    Returns:
+        SNAP region string suitable for the Subset operator's -Pregion parameter.
+    """
+    x_min, y_min, x_max, y_max = utm_bbox
+    orig_x, px_w, _, orig_y, _, px_h = geotransform  # px_h is negative
+
+    col_start = int(round((x_min - orig_x) / px_w))
+    row_start = int(round((y_max - orig_y) / px_h))  # px_h < 0 and y_max <= orig_y → positive
+    width     = int(round((x_max - x_min) / px_w))
+    height    = int(round((y_max - y_min) / abs(px_h)))
+
+    return f'{col_start},{row_start},{width},{height}'
+
+
+def _update_h5_corners(h5_path: Path, utm_bbox: tuple, epsg: int) -> None:
+    """Overwrite Abstracted_Metadata corner coordinates with the actual TC-output WGS84 corners.
+
+    SNAP preserves pre-TC SAR acquisition corners in the HDF5 metadata even after
+    terrain correction and subsetting.  This function replaces them with the correct
+    values derived from the UTM bounding box used to produce the tile.
+    """
+    x_min, y_min, x_max, y_max = utm_bbox
+    t = pyproj.Transformer.from_crs(epsg, 4326, always_xy=True)
+
+    bl_lon, bl_lat = t.transform(x_min, y_min)   # bottom-left  (last_near)
+    tl_lon, tl_lat = t.transform(x_min, y_max)   # top-left     (first_near)
+    tr_lon, tr_lat = t.transform(x_max, y_max)   # top-right    (first_far)
+    br_lon, br_lat = t.transform(x_max, y_min)   # bottom-right (last_far)
+    cx_lon, cx_lat = t.transform((x_min + x_max) / 2, (y_min + y_max) / 2)
+
+    with h5py.File(h5_path, 'r+') as f:
+        am = f['metadata/Abstracted_Metadata'].attrs
+        am['last_near_long']  = bl_lon
+        am['last_near_lat']   = bl_lat
+        am['first_near_long'] = tl_lon
+        am['first_near_lat']  = tl_lat
+        am['first_far_long']  = tr_lon
+        am['first_far_lat']   = tr_lat
+        am['last_far_long']   = br_lon
+        am['last_far_lat']    = br_lat
+        am['centre_lon']      = cx_lon
+        am['centre_lat']      = cx_lat
+
+
 def _cut_single_tile(rect, product_path, cuts_dir, product_mode, gpt_memory, gpt_parallelism, gpt_timeout):
     """Cut one tile from the product and return a result dict."""
-    geo_region = rectangle_to_wkt(rect)
     tile_name = rect['BL']['properties']['name']
     tile_path = cuts_dir / f'{tile_name}.h5'
     try:
         if product_mode == 'NISAR':
+            geo_region = rectangle_to_wkt(rect)
             reader = NISARReader(str(product_path))
             cutter = NISARCutter(reader)
             cutter.save_subset(cutter.cut_by_wkt(geo_region, 'HH', apply_mask=False), tile_path, driver='H5')
         else:
+            epsg = int(rect['BL']['properties']['epsg'].split(':')[1])
+            utm_bbox = grid_cell_utm_bbox(rect, epsg)
+            gt = _read_geotransform(product_path)
+            region = _utm_bbox_to_pixel_region(utm_bbox, gt)
             tile_path = Path(subset(
                 product_path, cuts_dir,
-                output_name=tile_name, geo_region=geo_region,
+                output_name=tile_name, region=region,
                 gpt_memory=gpt_memory, gpt_parallelism=gpt_parallelism, gpt_timeout=gpt_timeout,
             ))
+            _update_h5_corners(tile_path, utm_bbox, epsg)
         return _validate_tile_result(tile_name, tile_path, 'tile cut')
     except Exception as exc:
         return {'tile': tile_name, 'status': 'failed', 'reason': f'{type(exc).__name__}: {exc}', 'output_path': str(tile_path)}
@@ -403,8 +501,30 @@ def _ensure_grid_file(grid_path, base_path):
     return generated
 
 
-def _run_preprocessing(product_path, output_dir, product_mode, orbit_type, orbit_continue_on_fail, gpt_memory, gpt_parallelism, gpt_timeout):
-    if not prepro:
+def _find_existing_intermediates(output_dir: Path, product_mode: str) -> dict | Path:
+    """Locate existing BEAM-DIMAP intermediate products for --skip-preprocessing."""
+    if product_mode == 'S1TOPS':
+        result = {}
+        for swath in ('IW1', 'IW2', 'IW3'):
+            dims = sorted((output_dir / swath).glob('*.dim'), key=lambda p: p.stat().st_mtime, reverse=True)
+            if not dims:
+                raise FileNotFoundError(f'No .dim intermediate found in {output_dir / swath}')
+            if len(dims) > 1:
+                print(f'[WARN] Multiple .dim files in {output_dir / swath}, using most recent: {dims[0].name}')
+            result[swath] = dims[0]
+            print(f'Reusing intermediate {swath}: {dims[0]}')
+        return result
+    dims = sorted(output_dir.glob('*.dim'), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not dims:
+        raise FileNotFoundError(f'No .dim intermediate found in {output_dir}')
+    print(f'Reusing intermediate: {dims[0]}')
+    return dims[0]
+
+
+def _run_preprocessing(product_path, output_dir, product_mode, orbit_type, orbit_continue_on_fail, gpt_memory, gpt_parallelism, gpt_timeout, skip=False):
+    if not prepro or skip:
+        if skip:
+            return _find_existing_intermediates(output_dir, product_mode)
         return product_path
     result = ROUTER[product_mode](
         product_path, output_dir,
@@ -550,7 +670,9 @@ def main():
     intermediate = _run_preprocessing(
         product_path, output_dir, product_mode,
         orbit_type=args.orbit_type,
-        orbit_continue_on_fail=args.orbit_continue_on_fail, **gpt_kwargs,
+        orbit_continue_on_fail=args.orbit_continue_on_fail,
+        skip=args.skip_preprocessing,
+        **gpt_kwargs,
     )
 
     # TOPS returns a dict of {swath: path} — tile each swath separately.
