@@ -27,7 +27,7 @@ from sarpyx.utils.geos import (
 )
 from sarpyx.utils.io import read_h5
 from sarpyx.utils.nisar_utils import NISARCutter, NISARReader
-from sarpyx.utils.wkt_utils import sentinel1_wkt_extractor_cdse, sentinel1_wkt_extractor_manifest
+from sarpyx.utils.wkt_utils import nisar_wkt_extractor, sentinel1_wkt_extractor_cdse, sentinel1_wkt_extractor_manifest
 
 load_dotenv()
 
@@ -386,10 +386,11 @@ def _cut_single_tile(rect, product_path, cuts_dir, product_mode, gpt_memory, gpt
     tile_path = cuts_dir / f'{tile_name}.h5'
     try:
         if product_mode == 'NISAR':
-            geo_region = rectangle_to_wkt(rect)
+            epsg = int(rect['BL']['properties']['epsg'].split(':')[1])
+            x_min, y_min, x_max, y_max = grid_cell_utm_bbox(rect, epsg)
             reader = NISARReader(str(product_path))
             cutter = NISARCutter(reader)
-            cutter.save_subset(cutter.cut_by_wkt(geo_region, 'HH', apply_mask=False), tile_path, driver='H5')
+            cutter.save_subset(cutter.cut_by_bbox(x_min, y_min, x_max, y_max, 'HH', apply_mask=False), tile_path, driver='H5')
         else:
             epsg = int(rect['BL']['properties']['epsg'].split(':')[1])
             utm_bbox = grid_cell_utm_bbox(rect, epsg)
@@ -662,8 +663,10 @@ def main():
             product_wkt = sentinel1_wkt_extractor_cdse(product_path.name, display_results=False)
         if product_wkt is None:
             raise ValueError(f'Failed to extract Sentinel-1 WKT for product: {product_path}')
+    elif product_mode == 'NISAR':
+        product_wkt = nisar_wkt_extractor(product_path)
     else:
-        raise ValueError('No --product-wkt provided and automatic WKT extraction is only available for Sentinel-1.')
+        raise ValueError('No --product-wkt provided and automatic WKT extraction is only available for Sentinel-1 and NISAR.')
 
     gpt_kwargs = dict(gpt_memory=args.gpt_memory, gpt_parallelism=args.gpt_parallelism, gpt_timeout=args.gpt_timeout)
 
