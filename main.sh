@@ -191,7 +191,7 @@ echo "GRID_PATH=${GRID_PATH}"
 echo "CONTAINER_RUNTIME=${CONTAINER_RUNTIME}"
 
 # ---- Run ----
-"${CONTAINER_RUNTIME}" run \
+"${CONTAINER_RUNTIME}" run --writable-tmpfs \
   -B "${PY_SCRIPT_DIR}:${WORKSPACE_PREFIX}/scripts" \
   -B "${DATA_DIR}:${WORKSPACE_PREFIX}/data" \
   -B "${OUTPUT_PATH}:${WORKSPACE_PREFIX}/output" \
@@ -209,4 +209,5 @@ echo "CONTAINER_RUNTIME=${CONTAINER_RUNTIME}"
     --db-dir "${WORKSPACE_PREFIX}/db" \
     --gpt-memory "${GPT_MEMORY}" \
     --gpt-parallelism "${GPT_PARALLELISM}" \
-    --gpt-timeout "${GPT_TIMEOUT}"
+    --gpt-timeout "${GPT_TIMEOUT}" \
+    ${PRODUCT_WKT:+--product-wkt "${PRODUCT_WKT}"}

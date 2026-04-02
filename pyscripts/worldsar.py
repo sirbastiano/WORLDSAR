@@ -120,6 +120,11 @@ def pipeline_sentinel(
 
 def pipeline_tsx_csg(product_path, output_dir, gpt_memory=None, gpt_parallelism=None, gpt_timeout=None, **_):
     """TerraSAR-X / COSMO-SkyMed: calibration → terrain correction."""
+    # SNAP needs the XML file, not just the directory
+    if product_path.is_dir():
+        xmls = list(product_path.glob("*.xml"))
+        if xmls:
+            product_path = xmls[0]
     op = _create_gpt_operator(product_path, output_dir, 'BEAM-DIMAP', gpt_memory, gpt_parallelism, gpt_timeout)
     if op.Calibration(output_complex=True) is None:
         raise RuntimeError('Calibration failed.')
