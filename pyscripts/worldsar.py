@@ -58,7 +58,7 @@ db_indexing = True
 #  Pipelines  –  one per mission family, dispatched via ROUTER[mode]
 # ══════════════════════════════════════════════════════════════════════════════
 
-def _sentinel_post_chain(op):
+def _sentinel_post_chain(op, product_path):
     """Calibration → DerampDemod → Deburst → PolDecomp → TC  (shared by each swath)."""
     op.ApplyOrbitFile()
     op.Calibration(output_complex=True)
@@ -93,7 +93,7 @@ def pipeline_sentinel(
         for swath in ('IW1', 'IW2', 'IW3'):
             sw_op = _create_gpt_operator(Path(op.prod_path), output_dir / swath, 'BEAM-DIMAP', **gpt_kw)
             sw_op.TopsarSplit(subswath=swath) # SPLIT
-            results[swath] = _sentinel_post_chain(sw_op)
+            results[swath] = _sentinel_post_chain(sw_op, product_path)
         return results                    # {IW1: path, IW2: path, IW3: path}
     
     # STRIP mode – no split / deburst needed
