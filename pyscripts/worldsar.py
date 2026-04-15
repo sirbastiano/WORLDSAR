@@ -26,6 +26,7 @@ from sarpyx.utils.geos import (
     check_points_in_polygon, grid_cell_utm_bbox, rectangle_to_wkt, rectanglify,
 )
 from sarpyx.utils.io import read_h5
+from sarpyx.utils.meta import normalize_sar_timestamp
 from sarpyx.utils.nisar_utils import NISARCutter, NISARReader
 from sarpyx.utils.wkt_utils import nisar_wkt_extractor, sentinel1_wkt_extractor_cdse, sentinel1_wkt_extractor_manifest
 
@@ -163,23 +164,38 @@ ROUTER = {
 #  CLI
 # ══════════════════════════════════════════════════════════════════════════════
 
+# _PARSER_ARGS = [
+#     (['--input', '-i'],                dict(dest='product_path', type=str, required=True, help='Path to the input SAR product.')),
+#     (['--output', '-o'],               dict(dest='output_dir', type=str, required=True, help='Directory to save the processed output.')),
+#     (['--cuts-outdir', '--cuts_outdir'], dict(dest='cuts_outdir', type=str, default=None, help='Where to store the tiles after extraction.')),
+#     (['--product-wkt', '--product_wkt'], dict(dest='product_wkt', type=str, default=None, help='WKT string defining the product region of interest.')),
+#     (['--gpt-path'],                   dict(dest='gpt_path', type=str, default=None, help='Override GPT executable path.')),
+#     (['--grid-path'],                  dict(dest='grid_path', type=str, default=None, help='Override grid GeoJSON path.')),
+#     (['--db-dir'],                     dict(dest='db_dir', type=str, default=None, help='Override database output directory.')),
+#     (['--gpt-memory'],                 dict(dest='gpt_memory', type=str, default='16G', help='GPT Java heap (e.g., 24G).')),
+#     (['--gpt-parallelism'],            dict(dest='gpt_parallelism', type=int, default=10, help='GPT parallelism (number of tiles).')),
+#     (['--gpt-timeout'],                dict(dest='gpt_timeout', type=int, default=None, help='GPT timeout in seconds.')),
+#     (['--snap-userdir'],               dict(dest='snap_userdir', type=str, default=None, help='Override SNAP user directory.')),
+#     (['--orbit-type'],                 dict(dest='orbit_type', type=str, default='Sentinel Precise (Auto Download)', help='SNAP Apply-Orbit-File orbitType.')),
+#     (['--orbit-continue-on-fail'],     dict(dest='orbit_continue_on_fail', action='store_true', help='Continue if orbit file cannot be applied.')),
+#     (['--skip-preprocessing'],         dict(dest='skip_preprocessing', action='store_true', help='Skip TC preprocessing and reuse existing BEAM-DIMAP intermediate products for tiling.')),
+# ]
 _PARSER_ARGS = [
-    (['--input', '-i'],                dict(dest='product_path', type=str, required=True, help='Path to the input SAR product.')),
-    (['--output', '-o'],               dict(dest='output_dir', type=str, required=True, help='Directory to save the processed output.')),
-    (['--cuts-outdir', '--cuts_outdir'], dict(dest='cuts_outdir', type=str, default=None, help='Where to store the tiles after extraction.')),
+    (['--input', '-i'],                dict(dest='product_path', type=str, default='/shared/home/vmarsocci/egNISAR/NISAR_L2_PR_GSLC_005_172_A_008_2005_DHDH_A_20251122T024618_20251122T024652_X05007_N_F_J_001.h5', required=False, help='Path to the input SAR product.')),
+    (['--output', '-o'],               dict(dest='output_dir', type=str, default='/shared/home/vmarsocci/WORLDSAR/nisar-outputs/worldsar-output', required=False, help='Directory to save the processed output.')),
+    (['--cuts-outdir', '--cuts_outdir'], dict(dest='cuts_outdir', type=str, default='/shared/home/vmarsocci/WORLDSAR/nisar-outputs/tiles', help='Where to store the tiles after extraction.')),
     (['--product-wkt', '--product_wkt'], dict(dest='product_wkt', type=str, default=None, help='WKT string defining the product region of interest.')),
-    (['--gpt-path'],                   dict(dest='gpt_path', type=str, default=None, help='Override GPT executable path.')),
-    (['--grid-path'],                  dict(dest='grid_path', type=str, default=None, help='Override grid GeoJSON path.')),
-    (['--db-dir'],                     dict(dest='db_dir', type=str, default=None, help='Override database output directory.')),
+    (['--gpt-path'],                   dict(dest='gpt_path', type=str, default='/shared/home/vmarsocci/WORLDSAR/gpt-wrapper.sh', help='Override GPT executable path.')),
+    (['--grid-path'],                  dict(dest='grid_path', type=str, default='/shared/home/vmarsocci/WORLDSAR/grid/grid_10km.geojson', help='Override grid GeoJSON path.')),
+    (['--db-dir'],                     dict(dest='db_dir', type=str, default='/shared/home/vmarsocci/WORLDSAR/nisar-outputs/DB', help='Override database output directory.')),
     (['--gpt-memory'],                 dict(dest='gpt_memory', type=str, default='16G', help='GPT Java heap (e.g., 24G).')),
-    (['--gpt-parallelism'],            dict(dest='gpt_parallelism', type=int, default=10, help='GPT parallelism (number of tiles).')),
-    (['--gpt-timeout'],                dict(dest='gpt_timeout', type=int, default=None, help='GPT timeout in seconds.')),
+    (['--gpt-parallelism'],            dict(dest='gpt_parallelism', type=int, default=16, help='GPT parallelism (number of tiles).')),
+    (['--gpt-timeout'],                dict(dest='gpt_timeout', type=int, default=3600, help='GPT timeout in seconds.')),
     (['--snap-userdir'],               dict(dest='snap_userdir', type=str, default=None, help='Override SNAP user directory.')),
     (['--orbit-type'],                 dict(dest='orbit_type', type=str, default='Sentinel Precise (Auto Download)', help='SNAP Apply-Orbit-File orbitType.')),
     (['--orbit-continue-on-fail'],     dict(dest='orbit_continue_on_fail', action='store_true', help='Continue if orbit file cannot be applied.')),
     (['--skip-preprocessing'],         dict(dest='skip_preprocessing', action='store_true', help='Skip TC preprocessing and reuse existing BEAM-DIMAP intermediate products for tiling.')),
 ]
-
 
 def create_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description='Process SAR data using SNAP GPT and sarpyx pipelines.')
@@ -390,7 +406,7 @@ def _cut_single_tile(rect, product_path, cuts_dir, product_mode, gpt_memory, gpt
             x_min, y_min, x_max, y_max = grid_cell_utm_bbox(rect, epsg)
             reader = NISARReader(str(product_path))
             cutter = NISARCutter(reader)
-            cutter.save_subset(cutter.cut_by_bbox(x_min, y_min, x_max, y_max, 'HH', apply_mask=False), tile_path, driver='H5')
+            cutter.save_subset(cutter.cut_by_bbox(x_min, y_min, x_max, y_max, ['HH', 'HV'], apply_mask=False), tile_path, driver='H5')
         else:
             epsg = int(rect['BL']['properties']['epsg'].split(':')[1])
             utm_bbox = grid_cell_utm_bbox(rect, epsg)
@@ -404,7 +420,12 @@ def _cut_single_tile(rect, product_path, cuts_dir, product_mode, gpt_memory, gpt
             _update_h5_corners(tile_path, utm_bbox, epsg)
         return _validate_tile_result(tile_name, tile_path, 'tile cut')
     except Exception as exc:
-        return {'tile': tile_name, 'status': 'failed', 'reason': f'{type(exc).__name__}: {exc}', 'output_path': str(tile_path)}
+        reason = f'{type(exc).__name__}: {exc}'
+        # Tiles at the edge of the global grid can be outside the product footprint.
+        # Treat these as expected skips, not hard failures.
+        if 'does not intersect with product bounds' in reason:
+            return {'tile': tile_name, 'status': 'skipped', 'reason': reason, 'output_path': str(tile_path)}
+        return {'tile': tile_name, 'status': 'failed', 'reason': reason, 'output_path': str(tile_path)}
 
 
 # ── Reporting ────────────────────────────────────────────────────────────────
@@ -416,8 +437,9 @@ def _write_cut_report(
 ):
     report_dir.mkdir(parents=True, exist_ok=True)
     timestamp = datetime.utcnow().strftime('%Y-%m-%dT%H:%M:%SZ')
-    failed = [r for r in results if r.get('status') != 'success']
-    ok     = [r for r in results if r.get('status') == 'success']
+    failed  = [r for r in results if r.get('status') == 'failed']
+    skipped = [r for r in results if r.get('status') == 'skipped']
+    ok      = [r for r in results if r.get('status') == 'success']
     status = 'SUCCESS' if not failed and not missing_tiles else 'FAILURE'
 
     lines = [
@@ -432,10 +454,15 @@ def _write_cut_report(
         f'Expected tiles: {len(expected_tiles)}',
         f'Actual tiles on disk: {len(actual_tiles)}',
         f'Successful tiles (this run): {len(ok)}',
+        f'Skipped tiles (outside product bounds): {len(skipped)}',
         f'Failed tiles (this run): {len(failed)}',
         f'Missing tiles: {len(missing_tiles)}',
         f'Unexpected tiles: {len(extra_tiles)}',
     ]
+    if skipped:
+        lines.extend(['', 'Skipped tiles:'])
+        for r in sorted(skipped, key=lambda r: r.get('tile', '')):
+            lines.append(f"- {r.get('tile', 'UNKNOWN')}: {r.get('reason', '?')} | {r.get('output_path', '')}")
     if failed:
         lines.extend(['', 'Failed tiles:'])
         for r in sorted(failed, key=lambda r: r.get('tile', '')):
@@ -463,6 +490,7 @@ def create_tile_database(input_folder, output_db_folder):
         print(f'Processing tile {idx + 1}/{len(h5_tiles)}: {tile_file.name}')
         _data, metadata = read_h5(tile_file)
         row = pd.Series(metadata['quickinfo'])
+        row['first_line_time'] = normalize_sar_timestamp(row.get('first_line_time'))
         row['ID'] = tile_file.stem
         db = pd.concat([db, pd.DataFrame([row])], ignore_index=True)
 
@@ -567,8 +595,10 @@ def _run_tiling(product_wkt, grid_geoj_path, source_product, intermediate_produc
     ]
 
     expected_tiles = sorted({rect['BL']['properties']['name'] for rect in rectangles})
+    skipped_tiles  = {r['tile'] for r in results if r.get('status') == 'skipped'}
+    required_tiles = sorted(set(expected_tiles) - skipped_tiles)
     actual_tiles   = sorted({p.stem for p in cuts_dir.glob('*.h5')})
-    missing_tiles  = sorted(set(expected_tiles) - set(actual_tiles))
+    missing_tiles  = sorted(set(required_tiles) - set(actual_tiles))
     extra_tiles    = sorted(set(actual_tiles) - set(expected_tiles))
 
     report_path = _write_cut_report(
@@ -579,10 +609,12 @@ def _run_tiling(product_wkt, grid_geoj_path, source_product, intermediate_produc
     for res in results:
         if res.get('status') == 'success':
             print(f"Tile saved: {res.get('output_path', '')}")
+        elif res.get('status') == 'skipped':
+            print(f"Skipped tile {res.get('tile', 'UNKNOWN')}: {res.get('reason', '?')}")
         else:
             print(f"Failed tile {res.get('tile', 'UNKNOWN')}: {res.get('reason', '?')}")
 
-    if missing_tiles or any(r.get('status') != 'success' for r in results):
+    if missing_tiles or any(r.get('status') == 'failed' for r in results):
         raise RuntimeError(f'Tile cutting failed; report: {report_path}')
     return name
 
