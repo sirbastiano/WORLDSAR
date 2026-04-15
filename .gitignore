@@ -138,3 +138,7 @@ OUT/
 grid/
 
 logs/
+shard_subap.o81679
+filelist/products_to_redownload.txt
+filelist/products.txt
+SRSD/*
