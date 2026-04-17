@@ -28,7 +28,7 @@ VM_PBS_WALLTIME ?=
 VM_PBS_SELECT ?=
 
 # ---- HPC defaults (adjust for your cluster/user) ----
-HPC_PROJECT_ROOT ?= /shared/home/egm/Projects/WorldSAR/pretraining/WORLDSAR
+HPC_PROJECT_ROOT ?= /shared/home/vmarsocci/WORLDSAR
 HPC_BASE_DIR ?= $(abspath $(HPC_PROJECT_ROOT))
 HPC_DATA_DIR ?= $(HPC_BASE_DIR)/phidown_data
 HPC_PY_SCRIPT_DIR ?= $(HPC_BASE_DIR)/pyscripts
@@ -108,7 +108,7 @@ RUN_TS_FMT ?= +%Y%m%d_%H%M%S
 # Hugging Face cache & temp locations (move off HOME quota)
 # Override on command line if needed:
 #   make pull-sif HF_HOME=/lustre/project/.../hf
-HF_HOME ?= /shared/home/egm/Projects/WorldSAR/pretraining/WORLDSAR
+HF_HOME ?= /shared/home/vmarsocci/WORLDSAR
 HF_HUB_CACHE ?= $(HF_HOME)/hub
 HF_XET_CACHE ?= $(HF_HOME)/xet
 HF_ASSETS_CACHE ?= $(HF_HOME)/assets

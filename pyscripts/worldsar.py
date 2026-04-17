@@ -81,7 +81,7 @@ def sentinel1_wkt_extractor_manifest(*args, **kwargs):
 
 def merge_iq_into_pdec(*args, **kwargs):
     try:
-        from merge_iq_into_pdec import merge_iq_into_pdec as _impl
+        from src.merge_iq_into_pdec import merge_iq_into_pdec as _impl
     except ModuleNotFoundError as exc:
         if getattr(exc, 'name', None) != 'merge_iq_into_pdec':
             raise
@@ -234,7 +234,7 @@ def _sentinel_post_chain(
         n_decompositions=[2],
         byte_order=1,
         VERBOSE=False,
-        update_dim=True,
+        update_dim=False,
         tops_iw_mode=True,
         iw_apply_spectrum_normalization=False,
         iw_energy_compensation=True,
@@ -262,13 +262,10 @@ def _sentinel_post_chain(
     except ModuleNotFoundError as exc:
         if getattr(exc, 'name', None) != 'merge_iq_into_pdec':
             raise
-        fp_deb = update_dim_add_bands_from_data_dir(fp_deb, verbose=False)
-        fp_merged = op.BandMerge(
-            source_products=[fp_pdec, fp_deb],
-            output_name=f'{Path(fp_pdec).stem}_MERGED',
+        raise RuntimeError(
+            'merge_iq_into_pdec module is required for TOPS flow. '
+            'TOPS fallback to DIM metadata rewrite is disabled to avoid malformed DEB metadata.'
         )
-        if fp_merged is None:
-            raise RuntimeError(f'BandMerge failed: {op.last_error_summary()}')
     fp_tc = op.TerrainCorrection(
         map_projection='AUTO:42001',
         pixel_spacing_in_meter=10.0,
@@ -398,36 +395,26 @@ ROUTER = {
 #  CLI
 # ══════════════════════════════════════════════════════════════════════════════
 
-# _PARSER_ARGS = [
-#     (['--input', '-i'],                dict(dest='product_path', type=str, required=True, help='Path to the input SAR product.')),
-#     (['--output', '-o'],               dict(dest='output_dir', type=str, required=True, help='Directory to save the processed output.')),
-#     (['--cuts-outdir', '--cuts_outdir'], dict(dest='cuts_outdir', type=str, default=None, help='Where to store the tiles after extraction.')),
-#     (['--product-wkt', '--product_wkt'], dict(dest='product_wkt', type=str, default=None, help='WKT string defining the product region of interest.')),
-#     (['--gpt-path'],                   dict(dest='gpt_path', type=str, default=None, help='Override GPT executable path.')),
-#     (['--grid-path'],                  dict(dest='grid_path', type=str, default=None, help='Override grid GeoJSON path.')),
-#     (['--db-dir'],                     dict(dest='db_dir', type=str, default=None, help='Override database output directory.')),
-#     (['--gpt-memory'],                 dict(dest='gpt_memory', type=str, default='16G', help='GPT Java heap (e.g., 24G).')),
-#     (['--gpt-parallelism'],            dict(dest='gpt_parallelism', type=int, default=10, help='GPT parallelism (number of tiles).')),
-#     (['--gpt-timeout'],                dict(dest='gpt_timeout', type=int, default=None, help='GPT timeout in seconds.')),
-#     (['--snap-userdir'],               dict(dest='snap_userdir', type=str, default=None, help='Override SNAP user directory.')),
-#     (['--orbit-type'],                 dict(dest='orbit_type', type=str, default='Sentinel Precise (Auto Download)', help='SNAP Apply-Orbit-File orbitType.')),
-#     (['--orbit-continue-on-fail'],     dict(dest='orbit_continue_on_fail', action='store_true', help='Continue if orbit file cannot be applied.')),
-#     (['--skip-preprocessing'],         dict(dest='skip_preprocessing', action='store_true', help='Skip TC preprocessing and reuse existing BEAM-DIMAP intermediate products for tiling.')),
-# ]
 _PARSER_ARGS = [
-    (['--input', '-i'],                dict(dest='product_path', type=str, required=True, help='Path to the input SAR product.')),
-    (['--output', '-o'],               dict(dest='output_dir', type=str, default=None, help='Processed output directory, or target .zarr path in --h5-to-zarr-only mode.')),
-    (['--cuts-outdir', '--cuts_outdir'], dict(dest='cuts_outdir', type=str, default=None, help='Where to store the tiles after extraction.')),
+    # (['--input', '-i'],                dict(dest='product_path', type=str, required=True, help='Path to the input SAR product.')),
+    (['--input', '-i'],                dict(dest='product_path', type=str, default='/shared/home/vmarsocci/S1C_IW_SLC__1SDV_20260130T152608_20260130T152634_006135_00C4FA_664F.SAFE', required=False, help='Path to the input SAR product.')),
+    # (['--output', '-o'],               dict(dest='output_dir', type=str, default=None, help='Processed output directory, or target .zarr path in --h5-to-zarr-only mode.')),
+    (['--output', '-o'],               dict(dest='output_dir', type=str, default='/shared/home/vmarsocci/WORLDSAR/outputs/worldsar-output', required=False, help='Directory to save the processed output.')),
+    # (['--cuts-outdir', '--cuts_outdir'], dict(dest='cuts_outdir', type=str, default=None, help='Where to store the tiles after extraction.')),
+    (['--cuts-outdir', '--cuts_outdir'], dict(dest='cuts_outdir', type=str, default='/shared/home/vmarsocci/WORLDSAR/outputs/tiles', help='Where to store the tiles after extraction.')),
     (['--product-wkt', '--product_wkt'], dict(dest='product_wkt', type=str, default=None, help='WKT string defining the product region of interest.')),
     (['--h5-to-zarr-only'],            dict(dest='h5_to_zarr_only', action='store_true', help='Skip preprocessing/tiling and convert an existing .h5 tile into a Zarr v3 store.')),
     (['--zarr-chunk-size'],            dict(dest='zarr_chunk_size', type=int, nargs=2, metavar=('ROWS', 'COLS'), default=DEFAULT_ZARR_CHUNK_SIZE, help='Chunk size for H5-to-Zarr conversion. Defaults to 32 32.')),
     (['--overwrite-zarr'],             dict(dest='overwrite_zarr', action='store_true', help='Replace an existing output Zarr store when converting H5 tiles.')),
-    (['--gpt-path'],                   dict(dest='gpt_path', type=str, default=None, help='Override GPT executable path.')),
-    (['--grid-path'],                  dict(dest='grid_path', type=str, default=None, help='Override grid GeoJSON path.')),
-    (['--db-dir'],                     dict(dest='db_dir', type=str, default=None, help='Override database output directory.')),
+    # (['--gpt-path'],                   dict(dest='gpt_path', type=str, default=None, help='Override GPT executable path.')),
+    (['--gpt-path'],                   dict(dest='gpt_path', type=str, default='/shared/home/vmarsocci/WORLDSAR/gpt-wrapper.sh', help='Override GPT executable path.')),
+    (['--grid-path'],                  dict(dest='grid_path', type=str, default='/shared/home/vmarsocci/WORLDSAR/grid/grid_10km.geojson', help='Override grid GeoJSON path.')),
+    # (['--grid-path'],                  dict(dest='grid_path', type=str, default=None, help='Override grid GeoJSON path.')),
+    (['--db-dir'],                     dict(dest='db_dir', type=str, default='/shared/home/vmarsocci/WORLDSAR/outputs/DB', help='Override database output directory.')),
+    # (['--db-dir'],                     dict(dest='db_dir', type=str, default=None, help='Override database output directory.')),
     (['--gpt-memory'],                 dict(dest='gpt_memory', type=str, default='16G', help='GPT Java heap (e.g., 24G).')),
     (['--gpt-parallelism'],            dict(dest='gpt_parallelism', type=int, default=16, help='GPT parallelism (number of tiles).')),
-    (['--gpt-timeout'],                dict(dest='gpt_timeout', type=int, default=3600, help='GPT timeout in seconds.')),
+    (['--gpt-timeout'],                dict(dest='gpt_timeout', type=int, default=0, help='GPT timeout in seconds. Use 0 to disable timeout (recommended for long TOPS flows).')),
     (['--snap-userdir'],               dict(dest='snap_userdir', type=str, default=None, help='Override SNAP user directory.')),
     (['--orbit-type'],                 dict(dest='orbit_type', type=str, default='Sentinel Precise (Auto Download)', help='SNAP Apply-Orbit-File orbitType.')),
     (['--orbit-continue-on-fail'],     dict(dest='orbit_continue_on_fail', action='store_true', help='Continue if orbit file cannot be applied.')),
@@ -464,7 +451,11 @@ def _run_gpt_op(product_path, output_dir, output_format, op_name, gpt_memory=Non
     op = _create_gpt_operator(product_path, output_dir, output_format, gpt_memory, gpt_parallelism, gpt_timeout)
     result = getattr(op, op_name)(**op_kwargs)
     if result is None:
-        raise RuntimeError(f'GPT {op_name} failed: {op.last_error_summary()}')
+        error_summary = op.last_error_summary()
+        timeout_hint = ''
+        if 'timed out' in error_summary.lower():
+            timeout_hint = ' Increase --gpt-timeout (e.g. 14400) or disable it with --gpt-timeout 0.'
+        raise RuntimeError(f'GPT {op_name} failed: {error_summary}{timeout_hint}')
     output_path = Path(result)
     if not output_path.exists():
         raise RuntimeError(f'GPT {op_name} reported {output_path} but output file is missing.')
@@ -880,8 +871,8 @@ def _apply_runtime_overrides(args):
 def _validate_runtime_args(args):
     if args.gpt_parallelism is not None and args.gpt_parallelism <= 0:
         raise ValueError(f'--gpt-parallelism must be > 0, got {args.gpt_parallelism}')
-    if args.gpt_timeout is not None and args.gpt_timeout <= 0:
-        raise ValueError(f'--gpt-timeout must be > 0, got {args.gpt_timeout}')
+    if args.gpt_timeout is not None and args.gpt_timeout < 0:
+        raise ValueError(f'--gpt-timeout must be >= 0, got {args.gpt_timeout}')
     if len(args.zarr_chunk_size) != 2 or any(size <= 0 for size in args.zarr_chunk_size):
         raise ValueError(f'--zarr-chunk-size must contain two positive integers, got {args.zarr_chunk_size}')
 
