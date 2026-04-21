@@ -28,7 +28,7 @@ VM_PBS_WALLTIME ?=
 VM_PBS_SELECT ?=
 
 # ---- HPC defaults (adjust for your cluster/user) ----
-HPC_PROJECT_ROOT ?= /shared/home/vmarsocci/WORLDSAR
+HPC_PROJECT_ROOT ?= /lustre/projects/1001/rdelprete/WORLDSAR
 HPC_BASE_DIR ?= $(abspath $(HPC_PROJECT_ROOT))
 HPC_DATA_DIR ?= $(HPC_BASE_DIR)/phidown_data
 HPC_PY_SCRIPT_DIR ?= $(HPC_BASE_DIR)/pyscripts
@@ -108,7 +108,7 @@ RUN_TS_FMT ?= +%Y%m%d_%H%M%S
 # Hugging Face cache & temp locations (move off HOME quota)
 # Override on command line if needed:
 #   make pull-sif HF_HOME=/lustre/project/.../hf
-HF_HOME ?= /shared/home/vmarsocci/WORLDSAR
+HF_HOME ?= /lustre/scratch/1000/WorldSAR
 HF_HUB_CACHE ?= $(HF_HOME)/hub
 HF_XET_CACHE ?= $(HF_HOME)/xet
 HF_ASSETS_CACHE ?= $(HF_HOME)/assets
@@ -350,3 +350,7 @@ clean-hf-cache:
 	@command -v hf >/dev/null 2>&1 || { echo "Error: 'hf' CLI not found in PATH"; exit 1; }
 	@mkdir -p "$(HF_HOME)" "$(HF_HUB_CACHE)" "$(HF_XET_CACHE)" "$(HF_ASSETS_CACHE)" "$(HF_TMPDIR)"
 	hf cache prune || true
+
+
+debug:
+	@$(MAKE) run PRODUCT="S1C_IW_SLC__1SDV_20260130T152608_20260130T152634_006135_00C4FA_664F.SAFE"
