@@ -5,6 +5,7 @@ Compute azimuth-subaperture features from WorldSAR TC products.
 This script supports both:
   - SM/stripmap-style naming: i_VV_SA1.img, q_VH_SA3.img
   - IW/TOPS-style naming:     i_IW1_VV_SA1.img, q_IW2_VH_SA2.img
+  - multi-look namespaces:    L2_i_IW1_VV_SA1.img, L5_q_VH_SA3.img
 
 It discovers, per product directory:
   - available polarization(s),
@@ -26,7 +27,7 @@ from scipy.ndimage import uniform_filter
 
 
 IQ_RE = re.compile(
-    r"^(?P<part>[iq])_(?:(?P<prefix>IW\d+)_)?(?P<pol>VV|VH)(?:_SA(?P<sa>\d+))?\.img$",
+    r"^(?:(?P<lookset>L\d+)_)?(?P<part>[iq])_(?:(?P<prefix>IW\d+)_)?(?P<pol>VV|VH)(?:_SA(?P<sa>\d+))?\.img$",
     re.IGNORECASE,
 )
 
@@ -132,7 +133,9 @@ def discover_look_sets(product_dir: Path) -> List[LookSet]:
         if sa is None:
             continue
 
+        lookset = (match.group("lookset") or "").upper()
         prefix = (match.group("prefix") or "").upper()
+        prefix = "_".join(part for part in (lookset, prefix) if part)
         pol = match.group("pol").upper()
         part = match.group("part").lower()
         sa_idx = int(sa)

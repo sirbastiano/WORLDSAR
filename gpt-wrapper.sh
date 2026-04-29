@@ -1,2 +1,2 @@
 #!/bin/bash
-apptainer exec /shared/home/vmarsocci/WORLDSAR/sarpyx.sif /usr/local/bin/gpt "$@"
+apptainer exec /lustre/projects/1001/rdelprete/WORLDSAR/sarpyx.sif /usr/local/bin/gpt "$@"
