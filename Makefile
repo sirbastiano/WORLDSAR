@@ -39,7 +39,7 @@ HPC_SNAP_USER_DIR ?= $(HPC_BASE_DIR)/.snap
 HPC_OUTPUT_DIR ?= $(HPC_BASE_DIR)/OUT/worldsar_output
 HPC_TILES_DIR ?= $(HPC_BASE_DIR)/OUT/tiles
 HPC_DB_DIR ?= $(HPC_BASE_DIR)/OUT/DB
-HPC_WORKSPACE_PREFIX ?= /work
+HPC_WORKSPACE_PREFIX ?= /lustre/projects/1001/rdelprete/WORLDSAR/
 HPC_GRID_PATH ?= $(HPC_WORKSPACE_PREFIX)/grid/grid_10km.geojson
 HPC_GPT_MEMORY ?= 128G
 HPC_GPT_PARALLELISM ?= 164
@@ -178,6 +178,7 @@ ensure-qsub:
 clean:
 	@echo "Cleaning output directory..."
 	rm -rf "$(OUTPUT_DIR)" "$(TILES_DIR)" "$(DB_DIR)"
+	mkdir -p "$(OUTPUT_DIR)" "$(TILES_DIR)" "$(DB_DIR)"
 
 clean-logs:
 	@echo "Cleaning log files..."
@@ -353,4 +354,10 @@ clean-hf-cache:
 
 
 debug:
-	@$(MAKE) run PRODUCT="S1C_IW_SLC__1SDV_20260130T152608_20260130T152634_006135_00C4FA_664F.SAFE"
+	@$(MAKE) run PRODUCT=/lustre/projects/1001/rdelprete/WORLDSAR/phidown_data/S1C_IW_SLC__1SDV_20260130T152608_20260130T152634_006135_00C4FA_664F.SAFE
+
+
+
+reset:
+	@$(MAKE) clean
+	@$(MAKE) clean-logs

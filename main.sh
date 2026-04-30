@@ -1,5 +1,6 @@
 #!/bin/bash
 #PBS -N worldsar
+#PBS -S /bin/bash
 #PBS -q cpu_std
 #PBS -l walltime=23:30:00
 #PBS -l select=1:ncpus=192:mem=128g
@@ -29,6 +30,7 @@ HPC_SNAP_USER_DIR="${HPC_BASE_DIR}/.snap"
 HPC_OUTPUT_DIR="${HPC_BASE_DIR}/OUT/worldsar_output"
 HPC_TILES_DIR="${HPC_BASE_DIR}/OUT/tiles"
 HPC_DB_DIR="${HPC_BASE_DIR}/OUT/DB"
+HPC_GRID_FILE="${HPC_GRID_FILE:-${HPC_BASE_DIR}/grid/grid_10km.geojson}"
 HPC_GRID_PATH="${HPC_WORKSPACE_PREFIX}/grid/grid_10km.geojson"
 
 # ---- VM defaults (relative/portable) ----
@@ -41,6 +43,7 @@ VM_SNAP_USER_DIR="${VM_BASE_DIR}/.snap"
 VM_OUTPUT_DIR="${VM_BASE_DIR}/OUT/worldsar_output"
 VM_TILES_DIR="${VM_BASE_DIR}/OUT/tiles"
 VM_DB_DIR="${VM_BASE_DIR}/OUT/DB"
+VM_GRID_FILE="${VM_GRID_FILE:-${VM_BASE_DIR}/grid/grid_10km.geojson}"
 VM_GRID_PATH="${VM_WORKSPACE_PREFIX}/grid/grid_10km.geojson"
 
 if [[ "${WORLDSAR_MODE}" == "${WORLDSAR_MODE_HPC}" ]]; then
@@ -53,6 +56,7 @@ if [[ "${WORLDSAR_MODE}" == "${WORLDSAR_MODE_HPC}" ]]; then
   CUTS_OUTDIR="${CUTS_OUTDIR:-${HPC_TILES_DIR}}"
   DB_DIR="${DB_DIR:-${HPC_DB_DIR}}"
   WORKSPACE_PREFIX="${WORKSPACE_PREFIX:-${HPC_WORKSPACE_PREFIX}}"
+  GRID_FILE="${GRID_FILE:-${HOST_GRID_FILE:-${HPC_GRID_FILE}}}"
   GRID_PATH="${GRID_PATH:-${HPC_GRID_PATH}}"
   GPT_PARALLELISM="${GPT_PARALLELISM:-164}"
 elif [[ "${WORLDSAR_MODE}" == "${WORLDSAR_MODE_VM}" ]]; then
@@ -65,6 +69,7 @@ elif [[ "${WORLDSAR_MODE}" == "${WORLDSAR_MODE_VM}" ]]; then
   CUTS_OUTDIR="${CUTS_OUTDIR:-${VM_TILES_DIR}}"
   DB_DIR="${DB_DIR:-${VM_DB_DIR}}"
   WORKSPACE_PREFIX="${WORKSPACE_PREFIX:-${VM_WORKSPACE_PREFIX}}"
+  GRID_FILE="${GRID_FILE:-${HOST_GRID_FILE:-${VM_GRID_FILE}}}"
   GRID_PATH="${GRID_PATH:-${VM_GRID_PATH}}"
   GPT_PARALLELISM="${GPT_PARALLELISM:-16}"
 else
@@ -91,9 +96,14 @@ else
   PROD_PATH="${DATA_DIR}/${PRODUCT_INPUT}"
 fi
 
+echo "PRODUCT_INPUT=<${PRODUCT_INPUT}>"
+echo "DATA_DIR=<${DATA_DIR}>"
+echo "PROD_PATH=<${PROD_PATH}>"
+
 if [[ ! -e "${PROD_PATH}" ]]; then
   echo "ERROR: Product not found: ${PROD_PATH}" >&2
   echo "Set PRODUCT to a SAFE directory name under ${DATA_DIR}, or pass an existing path (directory or file)." >&2
+  ls -ld "${DATA_DIR}" "${PROD_PATH}" 2>&1 || true
   exit 2
 fi
 
@@ -102,9 +112,15 @@ PRODUCT_NAME="$(basename "${PROD_PATH}")"
 # ---- Parameters ----
 GPT_MEMORY="${GPT_MEMORY:-64G}"
 GPT_TIMEOUT="${GPT_TIMEOUT:-3600}"
+SENTINEL_SUBAPS="${SENTINEL_SUBAPS:-2}"
 # SNAP userdir stores cache/config; GPT binary location is independent.
 GPT_PATH="${GPT_PATH:-gpt}"
 GRID_PATH="${GRID_PATH:-${WORKSPACE_PREFIX}/grid/grid_10km.geojson}"
+# Optional exact host grid file to mount read-only into the container.
+# Example:
+#   GRID_FILE=/lustre/projects/1001/rdelprete/WORLDSAR/grid/grid_10km.geojson
+#   GRID_PATH=/work/grid/grid_10km.geojson
+GRID_FILE="${GRID_FILE:-${HOST_GRID_FILE:-}}"
 GRID_HOST_DIR="${GRID_HOST_DIR:-}"
 
 # ---- Basic validation ----
@@ -113,6 +129,10 @@ GRID_HOST_DIR="${GRID_HOST_DIR:-}"
 [[ -f "${SIF_IMAGE}" ]]    || { echo "ERROR: SIF_IMAGE not found: ${SIF_IMAGE}" >&2; exit 2; }
 [[ -e "${PROD_PATH}" ]]    || { echo "ERROR: PROD_PATH not found: ${PROD_PATH}" >&2; exit 2; }
 [[ -d "${SNAP_USER_DIR}" ]] || { echo "ERROR: SNAP_USER_DIR not found: ${SNAP_USER_DIR}" >&2; exit 2; }
+[[ "${GRID_PATH}" == /* ]] || { echo "ERROR: GRID_PATH must be an absolute in-container path: ${GRID_PATH}" >&2; exit 2; }
+[[ "${GRID_PATH}" == *.geojson ]] || { echo "ERROR: GRID_PATH must end with .geojson: ${GRID_PATH}" >&2; exit 2; }
+[[ "${SENTINEL_SUBAPS}" =~ ^[0-9]+$ ]] || { echo "ERROR: SENTINEL_SUBAPS must be an integer: ${SENTINEL_SUBAPS}" >&2; exit 2; }
+[[ "${SENTINEL_SUBAPS}" -ge 2 ]] || { echo "ERROR: SENTINEL_SUBAPS must be >= 2: ${SENTINEL_SUBAPS}" >&2; exit 2; }
 
 FALLBACK_OUTPUT_ROOT="${BASE_DIR}/outputs"
 use_fallback_outputs() {
@@ -146,10 +166,33 @@ if ! mkdir -p "${OUTPUT_PATH}" "${CUTS_OUTDIR}" "${DB_DIR}"; then
   fi
 fi
 
-if [[ -z "${GRID_HOST_DIR}" ]]; then
-  GRID_HOST_DIR="${OUTPUT_PATH}/grid"
+# ---- Grid binding ----
+# Preferred mode: bind one exact host grid file to GRID_PATH in the container.
+# Compatibility mode: bind GRID_HOST_DIR to ${WORKSPACE_PREFIX}/grid.
+if [[ -z "${GRID_FILE}" && -n "${GRID_HOST_DIR}" && -f "${GRID_HOST_DIR}" ]]; then
+  GRID_FILE="${GRID_HOST_DIR}"
+  GRID_HOST_DIR=""
 fi
-mkdir -p "${GRID_HOST_DIR}"
+
+if [[ -n "${GRID_FILE}" ]]; then
+  [[ -f "${GRID_FILE}" ]] || { echo "ERROR: GRID_FILE not found: ${GRID_FILE}" >&2; exit 2; }
+  [[ "${GRID_FILE}" == *.geojson ]] || { echo "ERROR: GRID_FILE must end with .geojson: ${GRID_FILE}" >&2; exit 2; }
+  GRID_BIND_SOURCE="${GRID_FILE}"
+  GRID_BIND_TARGET="${GRID_PATH}"
+  LEGACY_GRID_BIND_SOURCE="$(cd "$(dirname "${GRID_FILE}")" && pwd -P)"
+else
+  if [[ -z "${GRID_HOST_DIR}" ]]; then
+    GRID_HOST_DIR="${OUTPUT_PATH}/grid"
+  fi
+  mkdir -p "${GRID_HOST_DIR}"
+  GRID_BIND_SOURCE="${GRID_HOST_DIR}"
+  GRID_BIND_TARGET="${WORKSPACE_PREFIX}/grid"
+  LEGACY_GRID_BIND_SOURCE="${GRID_HOST_DIR}"
+  if [[ ! -f "${GRID_HOST_DIR}/$(basename "${GRID_PATH}")" ]]; then
+    echo "WARN: no host grid file found at ${GRID_HOST_DIR}/$(basename "${GRID_PATH}")" >&2
+    echo "WARN: set GRID_FILE=/host/path/grid.geojson to bind a specific grid file." >&2
+  fi
+fi
 
 CONTAINER_RUNTIME="${CONTAINER_RUNTIME:-apptainer}"
 if ! command -v "${CONTAINER_RUNTIME}" >/dev/null 2>&1; then
@@ -186,18 +229,25 @@ echo "OUTPUT_PATH=${OUTPUT_PATH}"
 echo "CUTS_OUTDIR=${CUTS_OUTDIR}"
 echo "DB_DIR=${DB_DIR}"
 echo "SNAP_USER_DIR=${SNAP_USER_DIR}"
+echo "GRID_FILE=${GRID_FILE}"
 echo "GRID_HOST_DIR=${GRID_HOST_DIR}"
+echo "GRID_BIND=${GRID_BIND_SOURCE}:${GRID_BIND_TARGET}:ro"
+echo "LEGACY_GRID_BIND=${LEGACY_GRID_BIND_SOURCE}:/workspace/grid:ro"
 echo "GRID_PATH=${GRID_PATH}"
 echo "CONTAINER_RUNTIME=${CONTAINER_RUNTIME}"
+echo "SENTINEL_SUBAPS=${SENTINEL_SUBAPS}"
 
 # ---- Run ----
 "${CONTAINER_RUNTIME}" run \
-  -B "${PY_SCRIPT_DIR}:${WORKSPACE_PREFIX}/scripts" \
-  -B "${DATA_DIR}:${WORKSPACE_PREFIX}/data" \
+  --env "GRID_PATH=${GRID_PATH}" \
+  --env "SNAP_USERDIR=${WORKSPACE_PREFIX}/.snap" \
+  -B "${PY_SCRIPT_DIR}:${WORKSPACE_PREFIX}/scripts:ro" \
+  -B "${DATA_DIR}:${WORKSPACE_PREFIX}/data:ro" \
   -B "${OUTPUT_PATH}:${WORKSPACE_PREFIX}/output" \
   -B "${CUTS_OUTDIR}:${WORKSPACE_PREFIX}/cuts" \
   -B "${DB_DIR}:${WORKSPACE_PREFIX}/db" \
-  -B "${GRID_HOST_DIR}:${WORKSPACE_PREFIX}/grid" \
+  -B "${GRID_BIND_SOURCE}:${GRID_BIND_TARGET}:ro" \
+  -B "${LEGACY_GRID_BIND_SOURCE}:/workspace/grid:ro" \
   -B "${SNAP_USER_DIR}:${WORKSPACE_PREFIX}/.snap" \
   "${SIF_IMAGE}" \
   python "${WORKSPACE_PREFIX}/scripts/worldsar.py" \
@@ -209,4 +259,5 @@ echo "CONTAINER_RUNTIME=${CONTAINER_RUNTIME}"
     --db-dir "${WORKSPACE_PREFIX}/db" \
     --gpt-memory "${GPT_MEMORY}" \
     --gpt-parallelism "${GPT_PARALLELISM}" \
-    --gpt-timeout "${GPT_TIMEOUT}"
+    --gpt-timeout "${GPT_TIMEOUT}" \
+    --sentinel-subaps "${SENTINEL_SUBAPS}"

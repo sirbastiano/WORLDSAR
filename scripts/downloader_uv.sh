@@ -27,6 +27,6 @@ exec "${REAL_S5CMD}" --numworkers "${S5CMD_NUM_WORKERS}" "$@"
 EOF
 chmod +x "${S5CMD_WRAP_DIR}/s5cmd"
 
-echo "phidown download: python -m phidown --name \"${PRODUCT}\" -o \"${PHIDOWN_DATA_DIR}/\" -c \"${PHIDOWN_CFG}\" --no-progress (s5cmd --numworkers ${S5CMD_NUM_WORKERS})"
+echo "phidown download: python -m phidown --name \"${PRODUCT}\" -o \"${PHIDOWN_DATA_DIR}/\" -c \"${PHIDOWN_CFG}\" --no-progress (s5cmd --numworkers ${S5CMD_NUM_WORKERS}) --mode safe"
 REAL_S5CMD="${S5CMD_BIN}" S5CMD_NUM_WORKERS="${S5CMD_NUM_WORKERS}" PATH="${S5CMD_WRAP_DIR}:${PATH}" \
   python -m phidown --name "${PRODUCT}" -o "${PHIDOWN_DATA_DIR}/" -c "${PHIDOWN_CFG}" 
